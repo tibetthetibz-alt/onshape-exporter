@@ -151,9 +151,10 @@ async function startTranslation(token, did, wid, element, format) {
   let url;
   const body = {
     formatName: format,
-    storeInDocument: false,
+    storeInDocument: true,
     resolution: 'FINE',
     unit: 'MILLIMETER',
+    destinationName: 'export_temp',
   };
 
   if (elementType === 'PARTSTUDIO') {
@@ -189,7 +190,7 @@ async function pollTranslation(token, translationId, maxWait = 120000) {
 // Download external data (translated file)
 async function downloadExternalData(token, did, externalDataId) {
   const r = await axios.get(
-    `${ONSHAPE_BASE}/api/v10/documents/${did}/externaldata/${externalDataId}`,
+    `${ONSHAPE_BASE}/api/v6/documents/d/${did}/externaldata/${externalDataId}`,
     { headers: onshapeHeaders(token), responseType: 'arraybuffer', maxRedirects: 5 }
   );
   return Buffer.from(r.data);
@@ -235,16 +236,36 @@ app.get('/api/export/:did', requireAuth, async (req, res) => {
         if (!translation) continue;
 
         const done = await pollTranslation(token, translation.id);
+        console.log('Translation done:', JSON.stringify({ 
+          state: done.requestState, 
+          externalIds: done.resultExternalDataIds,
+          documentIds: done.resultDocumentId,
+          elementIds: done.resultElementIds
+        }));
         const externalIds = done.resultExternalDataIds || [];
+        const ext = format === 'STEP' ? 'step' :
+                    format === 'STL'  ? 'stl'  :
+                    format === 'PDF'  ? 'pdf'  : format.toLowerCase();
+        const safeName = el.name.replace(/[^a-zA-Z0-9_\- ]/g, '_');
 
-        for (let i = 0; i < externalIds.length; i++) {
-          const buf = await downloadExternalData(token, did, externalIds[i]);
-          const ext = format === 'STEP' ? 'step' :
-                      format === 'STL'  ? 'stl'  :
-                      format === 'PDF'  ? 'pdf'  : format.toLowerCase();
-          const safeName = el.name.replace(/[^a-zA-Z0-9_\- ]/g, '_');
-          const suffix = externalIds.length > 1 ? `_${i + 1}` : '';
-          archive.append(buf, { name: `${safeName}${suffix}.${ext}` });
+        if (externalIds.length > 0) {
+          for (let i = 0; i < externalIds.length; i++) {
+            const buf = await downloadExternalData(token, did, externalIds[i]);
+            const suffix = externalIds.length > 1 ? `_${i + 1}` : '';
+            archive.append(buf, { name: `${safeName}${suffix}.${ext}` });
+          }
+        } else if (done.resultElementIds && done.resultElementIds.length > 0) {
+          // storeInDocument=true: download from blob element
+          const resultDid = done.resultDocumentId || did;
+          const resultWid = done.resultWorkspaceId || wid;
+          const resultEid = done.resultElementIds[0];
+          const blobR = await axios.get(
+            `${ONSHAPE_BASE}/api/v6/blobelements/d/${resultDid}/w/${resultWid}/e/${resultEid}`,
+            { headers: onshapeHeaders(token), responseType: 'arraybuffer' }
+          );
+          archive.append(Buffer.from(blobR.data), { name: `${safeName}.${ext}` });
+        } else {
+          throw new Error('No result data from translation');
         }
       } catch (elErr) {
         // Add a text error file instead of crashing
