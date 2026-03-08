@@ -129,15 +129,14 @@ app.get('/api/documents/:did/elements', requireAuth, async (req, res) => {
   try {
     await refreshIfNeeded(req);
     const { did } = req.params;
-    // Get document info including default workspace
-    const docR = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}`,
+    // Use documents/d/ prefix and get workspaces
+    console.log('Fetching workspaces for doc:', did);
+    const wsR = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/workspaces`,
       { headers: onshapeHeaders(req.session.accessToken) });
-    const wid = docR.data.defaultWorkspace?.id || docR.data.defaultWorkspace;
+    console.log('Workspaces:', JSON.stringify(wsR.data?.slice(0,2)));
+    const wid = wsR.data[0]?.id;
     if (!wid) return res.status(404).json({ error: 'No workspace found' });
-    console.log('Using workspace:', wid, 'for doc:', did);
-    console.log('Full doc response keys:', Object.keys(docR.data));
-    console.log('defaultWorkspace value:', JSON.stringify(docR.data.defaultWorkspace));
-    const elR = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}/w/${wid}/elements`,
+    const elR = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/w/${wid}/elements`,
       { headers: onshapeHeaders(req.session.accessToken) });
     res.json({ elements: elR.data, workspaceId: wid });
   } catch (e) {
