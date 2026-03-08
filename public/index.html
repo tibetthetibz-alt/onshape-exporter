@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Onshape Exporter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111417;
+    --border: #1e2229;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* ── Animated background ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 10% 20%, rgba(0,229,255,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 90% 80%, rgba(124,58,237,0.08) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .grid-bg {
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Nav ── */
+  nav {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 40px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    background: rgba(10,12,15,0.7);
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 18px; letter-spacing: -0.5px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .nav-actions { display: flex; gap: 12px; align-items: center; }
+
+  /* ── Hero ── */
+  .hero {
+    position: relative; z-index: 1;
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    padding: 80px 24px;
+  }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid rgba(0,229,255,0.3);
+    background: rgba(0,229,255,0.06);
+    color: var(--accent);
+    font-size: 12px; font-weight: 500; letter-spacing: 0.5px;
+    padding: 5px 12px; border-radius: 999px;
+    margin-bottom: 28px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .badge::before { content: '⬡'; font-size: 10px; }
+
+  h1 {
+    font-size: clamp(40px, 7vw, 80px);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    margin-bottom: 20px;
+  }
+
+  h1 span {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 18px; color: var(--muted); max-width: 520px;
+    line-height: 1.6; margin-bottom: 44px;
+  }
+
+  .cta-group { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 28px; border-radius: 10px;
+    font-family: inherit; font-size: 15px; font-weight: 600;
+    cursor: pointer; border: none; text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #0099bb);
+    color: #000;
+    box-shadow: 0 0 24px rgba(0,229,255,0.25);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 40px rgba(0,229,255,0.4);
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .btn-outline:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,229,255,0.04);
+  }
+
+  .btn-danger {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    color: var(--red);
+  }
+
+  .btn-danger:hover { background: rgba(239,68,68,0.2); }
+
+  /* ── Features ── */
+  .features {
+    position: relative; z-index: 1;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px; padding: 0 40px 80px; max-width: 1100px; margin: 0 auto; width: 100%;
+  }
+
+  .feature-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px;
+    transition: border-color 0.2s;
+  }
+
+  .feature-card:hover { border-color: rgba(0,229,255,0.3); }
+
+  .feature-icon { font-size: 28px; margin-bottom: 12px; }
+  .feature-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .feature-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  /* ── App page ── */
+  #app-page { display: none; flex-direction: column; min-height: 100vh; }
+
+  .app-layout {
+    position: relative; z-index: 1;
+    display: grid; grid-template-columns: 320px 1fr;
+    gap: 0; flex: 1;
+  }
+
+  .sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    display: flex; flex-direction: column;
+    height: calc(100vh - 65px); overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 20px; border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-header h2 { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; margin-top: 12px;
+  }
+
+  .search-box input {
+    background: none; border: none; outline: none;
+    color: var(--text); font-family: inherit; font-size: 14px; flex: 1;
+  }
+
+  .search-box input::placeholder { color: var(--muted); }
+
+  .doc-list { overflow-y: auto; flex: 1; }
+
+  .doc-item {
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background 0.15s;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+
+  .doc-item:hover { background: rgba(255,255,255,0.03); }
+  .doc-item.active { background: rgba(0,229,255,0.06); border-left: 2px solid var(--accent); }
+
+  .doc-item-name { font-size: 14px; font-weight: 500; }
+  .doc-item-meta { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  .main-panel {
+    display: flex; flex-direction: column;
+    height: calc(100vh - 65px); overflow-y: auto;
+    padding: 32px;
+  }
+
+  .empty-state {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: var(--muted); text-align: center; gap: 12px;
+  }
+
+  .empty-state-icon { font-size: 48px; }
+
+  /* ── Document detail ── */
+  .doc-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 28px; gap: 16px;
+  }
+
+  .doc-title { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+  .doc-subtitle { font-size: 13px; color: var(--muted); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+
+  .export-controls {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  }
+
+  .format-select {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: inherit; font-size: 14px;
+    padding: 10px 14px; border-radius: 8px; cursor: pointer; outline: none;
+  }
+
+  .format-select:focus { border-color: var(--accent); }
+
+  /* ── Elements table ── */
+  .elements-section { margin-top: 8px; }
+
+  .section-title {
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
+  }
+
+  .elements-grid { display: flex; flex-direction: column; gap: 8px; }
+
+  .element-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px;
+    transition: border-color 0.2s;
+  }
+
+  .element-card:hover { border-color: rgba(0,229,255,0.2); }
+
+  .el-type-badge {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+    padding: 3px 8px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+
+  .el-type-PARTSTUDIO { background: rgba(0,229,255,0.1); color: var(--accent); }
+  .el-type-ASSEMBLY   { background: rgba(124,58,237,0.15); color: #a78bfa; }
+  .el-type-DRAWING    { background: rgba(245,158,11,0.1); color: var(--yellow); }
+
+  .el-name { font-size: 14px; font-weight: 500; flex: 1; }
+
+  .el-status {
+    font-size: 12px; font-family: 'JetBrains Mono', monospace;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .status-dot.waiting   { background: var(--muted); }
+  .status-dot.translating { background: var(--yellow); animation: pulse 1s infinite; }
+  .status-dot.done      { background: var(--green); }
+  .status-dot.failed    { background: var(--red); }
+  .status-dot.skipped   { background: var(--muted); }
+
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* ── Progress bar ── */
+  .progress-container {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; margin-bottom: 24px;
+    display: none;
+  }
+
+  .progress-container.visible { display: block; }
+
+  .progress-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .progress-label { font-size: 14px; font-weight: 500; }
+  .progress-pct { font-size: 14px; font-family: 'JetBrains Mono', monospace; color: var(--accent); }
+
+  .progress-bar-bg {
+    height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 3px; transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  .progress-msg { font-size: 13px; color: var(--muted); margin-top: 10px; }
+
+  /* ── Download button ── */
+  .download-ready {
+    background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 12px; padding: 20px; text-align: center; display: none;
+    margin-bottom: 24px;
+  }
+
+  .download-ready.visible { display: block; }
+  .download-ready h3 { color: var(--green); margin-bottom: 8px; }
+  .download-ready p { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 999;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 18px;
+    font-size: 14px; transform: translateY(60px); opacity: 0;
+    transition: all 0.3s ease; pointer-events: none;
+  }
+
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── User chip ── */
+  .user-chip {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--muted);
+  }
+
+  .user-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #000;
+  }
+
+  .loading-spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    .features { padding: 0 20px 60px; grid-template-columns: 1fr; }
+    .app-layout { grid-template-columns: 1fr; }
+    .sidebar { height: auto; max-height: 40vh; }
+    .main-panel { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<!-- ── LANDING PAGE ── -->
+<div id="landing-page">
+  <nav>
+    <div class="logo">
+      <div class="logo-icon">⬡</div>
+      OnExport
+    </div>
+    <div class="nav-actions" id="nav-actions">
+      <a href="/auth/login" class="btn btn-primary">Connect Onshape →</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="badge">Onshape REST API v10</div>
+    <h1>Export everything.<br /><span>Automatically.</span></h1>
+    <p class="subtitle">Connect your Onshape account and bulk-export every Part Studio, Assembly, and Drawing from any document — in seconds.</p>
+    <div class="cta-group">
+      <a href="/auth/login" class="btn btn-primary" id="login-btn">Connect with Onshape</a>
+      <a href="https://onshape-public.github.io/docs/" target="_blank" class="btn btn-outline">API Docs ↗</a>
+    </div>
+  </div>
+
+  <div class="features">
+    <div class="feature-card">
+      <div class="feature-icon">🔐</div>
+      <div class="feature-title">OAuth2 Secure Login</div>
+      <div class="feature-desc">Industry-standard OAuth2 authentication — your credentials never touch this server.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📦</div>
+      <div class="feature-title">Bulk ZIP Export</div>
+      <div class="feature-desc">All Part Studios, Assemblies, and Drawings exported into a single ZIP file.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Multiple Formats</div>
+      <div class="feature-desc">Export as STEP, STL, or IGES. Drawings automatically export as PDF.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📡</div>
+      <div class="feature-title">Live Progress</div>
+      <div class="feature-desc">Real-time export status via Server-Sent Events — watch each element translate.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP PAGE ── -->
+<div id="app-page">
+  <nav>
+    <div class="logo">
+      <div class="logo-icon">⬡</div>
+      OnExport
+    </div>
+    <div class="nav-actions">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <span id="user-name">Loading...</span>
+      </div>
+      <a href="/auth/logout" class="btn btn-danger">Sign out</a>
+    </div>
+  </nav>
+
+  <div class="app-layout" style="position:relative;z-index:1">
+    <!-- Sidebar: document list -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h2>Your Documents</h2>
+        <div class="search-box">
+          <span>🔍</span>
+          <input type="text" id="search-input" placeholder="Search documents..." />
+        </div>
+      </div>
+      <div class="doc-list" id="doc-list">
+        <div style="padding:20px;text-align:center;color:var(--muted);">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main panel -->
+    <div class="main-panel" id="main-panel">
+      <div class="empty-state" id="empty-state">
+        <div class="empty-state-icon">📂</div>
+        <strong>Select a document</strong>
+        <p style="font-size:14px">Choose a document from the sidebar to begin exporting.</p>
+      </div>
+
+      <div id="doc-detail" class="hidden">
+        <div class="doc-header">
+          <div>
+            <div class="doc-title" id="detail-title"></div>
+            <div class="doc-subtitle" id="detail-id"></div>
+          </div>
+          <div class="export-controls">
+            <select class="format-select" id="format-select">
+              <option value="STEP">STEP (.step)</option>
+              <option value="STL">STL (.stl)</option>
+              <option value="IGES">IGES (.igs)</option>
+            </select>
+            <button class="btn btn-primary" id="export-btn" onclick="startExport()">
+              ⬇ Export All
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-container" id="progress-container">
+          <div class="progress-header">
+            <span class="progress-label" id="progress-label">Preparing export...</span>
+            <span class="progress-pct" id="progress-pct">0%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progress-bar"></div>
+          </div>
+          <div class="progress-msg" id="progress-msg"></div>
+        </div>
+
+        <!-- Download ready -->
+        <div class="download-ready" id="download-ready">
+          <h3>✅ Export complete!</h3>
+          <p id="download-summary"></p>
+          <button class="btn btn-primary" id="download-btn" onclick="triggerDownload()">⬇ Download ZIP</button>
+        </div>
+
+        <!-- Elements -->
+        <div class="elements-section">
+          <div class="section-title">Elements in this document</div>
+          <div class="elements-grid" id="elements-grid">
+            <div style="color:var(--muted);font-size:14px">Loading elements...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let currentDocId = null;
+let currentDocName = '';
+let totalElements = 0;
+let doneElements = 0;
+let exportEventSource = null;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  const r = await fetch('/auth/status');
+  const { authenticated } = await r.json();
+  if (authenticated) {
+    document.getElementById('landing-page').style.display = 'none';
+    document.getElementById('app-page').style.display = 'flex';
+    document.getElementById('app-page').style.flexDirection = 'column';
+    loadUser();
+    loadDocuments();
+  }
+}
+
+async function loadUser() {
+  const r = await fetch('/api/user');
+  if (!r.ok) return;
+  const u = await r.json();
+  const name = u.name || u.email || 'User';
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+}
+
+// ── Documents ─────────────────────────────────────────────────────────────────
+let searchTimer;
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  const si = document.getElementById('search-input');
+  if (si) si.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => loadDocuments(si.value), 400);
+  });
+});
+
+async function loadDocuments(q = '') {
+  const list = document.getElementById('doc-list');
+  list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);"><div class="loading-spinner"></div></div>';
+  const r = await fetch(`/api/documents?q=${encodeURIComponent(q)}&limit=50`);
+  const data = await r.json();
+  const docs = data.items || [];
+  if (!docs.length) {
+    list.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:14px">No documents found.</div>';
+    return;
+  }
+  list.innerHTML = docs.map(d => `
+    <div class="doc-item" onclick="selectDoc('${d.id}','${escHtml(d.name)}')" id="doc-${d.id}">
+      <div class="doc-item-name">${escHtml(d.name)}</div>
+      <div class="doc-item-meta">${timeAgo(d.modifiedAt)}</div>
+    </div>
+  `).join('');
+}
+
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff/60000), h = Math.floor(m/60), d = Math.floor(h/24);
+  if (d > 0) return `${d}d ago`;
+  if (h > 0) return `${h}h ago`;
+  if (m > 0) return `${m}m ago`;
+  return 'just now';
+}
+
+// ── Select document ───────────────────────────────────────────────────────────
+async function selectDoc(did, name) {
+  currentDocId = did; currentDocName = name;
+  document.querySelectorAll('.doc-item').forEach(el => el.classList.remove('active'));
+  document.getElementById(`doc-${did}`)?.classList.add('active');
+  document.getElementById('empty-state').classList.add('hidden');
+  document.getElementById('doc-detail').classList.remove('hidden');
+  document.getElementById('detail-title').textContent = name;
+  document.getElementById('detail-id').textContent = `id: ${did}`;
+  document.getElementById('progress-container').classList.remove('visible');
+  document.getElementById('download-ready').classList.remove('visible');
+  document.getElementById('elements-grid').innerHTML =
+    '<div style="color:var(--muted);font-size:14px"><div class="loading-spinner" style="display:inline-block"></div> Loading...</div>';
+
+  const r = await fetch(`/api/documents/${did}/elements`);
+  const data = await r.json();
+  const els = (data.elements || []).filter(e => ['PARTSTUDIO','ASSEMBLY','DRAWING'].includes(e.elementType));
+  totalElements = els.length;
+
+  if (!els.length) {
+    document.getElementById('elements-grid').innerHTML =
+      '<div style="color:var(--muted);font-size:14px">No exportable elements (Part Studios, Assemblies, or Drawings) found.</div>';
+    return;
+  }
+
+  document.getElementById('elements-grid').innerHTML = els.map(el => `
+    <div class="element-card" id="el-${el.id}">
+      <span class="el-type-badge el-type-${el.elementType}">${el.elementType}</span>
+      <span class="el-name">${escHtml(el.name)}</span>
+      <span class="el-status" id="status-${el.id}">
+        <span class="status-dot waiting"></span>
+        <span>waiting</span>
+      </span>
+    </div>
+  `).join('');
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+function startExport() {
+  if (!currentDocId) return;
+  if (exportEventSource) { exportEventSource.close(); exportEventSource = null; }
+
+  const format = document.getElementById('format-select').value;
+  doneElements = 0;
+
+  document.getElementById('progress-container').classList.add('visible');
+  document.getElementById('download-ready').classList.remove('visible');
+  document.getElementById('export-btn').disabled = true;
+  document.getElementById('export-btn').textContent = '⏳ Exporting...';
+  setProgress(0, 'Starting translation...', '');
+
+  // Reset element statuses
+  document.querySelectorAll('.el-status').forEach(el => {
+    el.innerHTML = '<span class="status-dot waiting"></span><span>waiting</span>';
+  });
+
+  exportEventSource = new EventSource(
+    `/api/export/${currentDocId}/progress?format=${format}`
+  );
+
+  exportEventSource.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+
+    if (msg.type === 'start') {
+      totalElements = msg.total;
+      setProgress(0, `Translating 0 of ${totalElements} elements...`, '');
+    }
+
+    if (msg.type === 'progress') {
+      const { index, name, status, elementType } = msg;
+      // Update card
+      const statusEl = document.querySelector(`#elements-grid .element-card:nth-child(${index+1}) .el-status`);
+      if (statusEl) {
+        const labels = { translating:'translating', done:'done', failed:'failed', skipped:'skipped' };
+        statusEl.innerHTML = `<span class="status-dot ${status}"></span><span>${labels[status]||status}</span>`;
+      }
+
+      if (status === 'done' || status === 'failed') {
+        doneElements++;
+        const pct = Math.round((doneElements / totalElements) * 100);
+        setProgress(pct, `Translated ${doneElements} of ${totalElements} elements`, `Current: ${name}`);
+      } else if (status === 'translating') {
+        setProgress(
+          Math.round((doneElements / totalElements) * 100),
+          `Translating ${doneElements+1} of ${totalElements} elements`,
+          `Processing: ${name} (${elementType})`
+        );
+      }
+    }
+
+    if (msg.type === 'complete') {
+      exportEventSource.close(); exportEventSource = null;
+      setProgress(100, 'All elements translated!', '');
+      const done = (msg.results||[]).filter(r => r.status === 'done').length;
+      const failed = (msg.results||[]).filter(r => r.status === 'failed').length;
+      document.getElementById('download-summary').textContent =
+        `${done} element${done!==1?'s':''} ready to download${failed>0?` (${failed} failed)`:''}`;
+      document.getElementById('download-ready').classList.add('visible');
+      document.getElementById('export-btn').disabled = false;
+      document.getElementById('export-btn').textContent = '⬇ Export All';
+      toast('✅ Export complete! Click Download ZIP.', 4000);
+    }
+
+    if (msg.type === 'error') {
+      exportEventSource.close(); exportEventSource = null;
+      toast('❌ Export error: ' + msg.error, 5000);
+      document.getElementById('export-btn').disabled = false;
+      document.getElementById('export-btn').textContent = '⬇ Export All';
+    }
+  };
+
+  exportEventSource.onerror = () => {
+    exportEventSource.close(); exportEventSource = null;
+    toast('Connection lost during export.', 5000);
+    document.getElementById('export-btn').disabled = false;
+    document.getElementById('export-btn').textContent = '⬇ Export All';
+  };
+}
+
+function triggerDownload() {
+  const format = document.getElementById('format-select').value;
+  window.location.href = `/api/export/${currentDocId}?format=${format}`;
+}
+
+function setProgress(pct, label, msg) {
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('progress-label').textContent = label;
+  document.getElementById('progress-msg').textContent = msg;
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, dur=3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+</script>
+</body>
+</html>
