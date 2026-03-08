@@ -578,7 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadDocuments(q = '') {
   const list = document.getElementById('doc-list');
   list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);"><div class="loading-spinner"></div></div>';
-  const r = await fetch(`/api/documents?q=${encodeURIComponent(q)}&limit=50`);
+  const r = await fetch(`/api/documents?q=${encodeURIComponent(q)}&limit=20`);
   const data = await r.json();
   const docs = data.items || [];
   if (!docs.length) {
