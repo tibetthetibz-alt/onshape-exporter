@@ -111,7 +111,7 @@ app.get('/api/documents', requireAuth, async (req, res) => {
   try {
     await refreshIfNeeded(req);
     const { q = '', offset = 0, limit = 20 } = req.query;
-    const params = { sortColumn: 'modifiedAt', sortOrder: 'desc', offset, limit };
+    const params = { sortColumn: 'modifiedAt', sortOrder: 'desc', offset, limit, filter: 0 };
     if (q) params.q = q;
     const r = await axios.get(`${ONSHAPE_BASE}/api/v10/documents`, {
       params,
