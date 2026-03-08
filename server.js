@@ -129,15 +129,18 @@ app.get('/api/documents/:did/elements', requireAuth, async (req, res) => {
   try {
     await refreshIfNeeded(req);
     const { did } = req.params;
-    // Get workspaces list directly
-    const wsR = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}/workspaces`,
+    // Get document info to find default workspace
+    const docR = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}`,
       { headers: onshapeHeaders(req.session.accessToken) });
-    const workspaces = wsR.data;
-    if (!workspaces || workspaces.length === 0) {
-      return res.status(404).json({ error: 'No workspaces found in this document' });
+    const doc = docR.data;
+    // Try defaultWorkspace first, then fall back to first workspace
+    let wid = doc.defaultWorkspace?.id;
+    if (!wid) {
+      const wsR = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/d/${did}/workspaces`,
+        { headers: onshapeHeaders(req.session.accessToken) });
+      wid = wsR.data[0]?.id;
     }
-    // Use the first workspace (usually Main)
-    const wid = workspaces[0].id;
+    if (!wid) return res.status(404).json({ error: 'No workspace found' });
     const elR = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}/w/${wid}/elements`,
       { headers: onshapeHeaders(req.session.accessToken) });
     res.json({ elements: elR.data, workspaceId: wid });
@@ -210,9 +213,12 @@ app.get('/api/export/:did', requireAuth, async (req, res) => {
     const docR = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}`,
       { headers: onshapeHeaders(token) });
     const docName = docR.data.name || did;
-    const wsR = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}/workspaces`,
-      { headers: onshapeHeaders(token) });
-    const wid = wsR.data[0].id;
+    let wid = docR.data.defaultWorkspace?.id;
+    if (!wid) {
+      const wsR = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/d/${did}/workspaces`,
+        { headers: onshapeHeaders(token) });
+      wid = wsR.data[0]?.id;
+    }
 
     // Get elements
     const elR = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}/w/${wid}/elements`,
@@ -281,9 +287,14 @@ app.get('/api/export/:did/progress', requireAuth, async (req, res) => {
     await refreshIfNeeded(req);
     const token = req.session.accessToken;
 
-    const wsR2 = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}/workspaces`,
+    const docR2 = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}`,
       { headers: onshapeHeaders(token) });
-    const wid = wsR2.data[0].id;
+    let wid = docR2.data.defaultWorkspace?.id;
+    if (!wid) {
+      const wsR2 = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/d/${did}/workspaces`,
+        { headers: onshapeHeaders(token) });
+      wid = wsR2.data[0]?.id;
+    }
 
     const elR = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}/w/${wid}/elements`,
       { headers: onshapeHeaders(token) });
