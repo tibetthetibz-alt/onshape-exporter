@@ -1,747 +1,954 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Onshape Exporter</title>
+<title>OnExport</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg: #0a0c0f;
-    --surface: #111417;
-    --border: #1e2229;
-    --accent: #00e5ff;
-    --accent2: #7c3aed;
-    --text: #e8eaf0;
-    --muted: #6b7280;
-    --green: #22c55e;
-    --red: #ef4444;
-    --yellow: #f59e0b;
-  }
-
-  html, body { height: 100%; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Space Grotesk', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow-x: hidden;
-  }
-
-  /* ── Animated background ── */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background:
-      radial-gradient(ellipse 80% 60% at 10% 20%, rgba(0,229,255,0.06) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 90% 80%, rgba(124,58,237,0.08) 0%, transparent 60%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .grid-bg {
-    position: fixed; inset: 0;
-    background-image:
-      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* ── Nav ── */
-  nav {
-    position: relative; z-index: 10;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 20px 40px;
-    border-bottom: 1px solid var(--border);
-    backdrop-filter: blur(12px);
-    background: rgba(10,12,15,0.7);
-  }
-
-  .logo {
-    display: flex; align-items: center; gap: 10px;
-    font-weight: 700; font-size: 18px; letter-spacing: -0.5px;
-  }
-
-  .logo-icon {
-    width: 32px; height: 32px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-  }
-
-  .nav-actions { display: flex; gap: 12px; align-items: center; }
-
-  /* ── Hero ── */
-  .hero {
-    position: relative; z-index: 1;
-    flex: 1;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center;
-    padding: 80px 24px;
-  }
-
-  .badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    border: 1px solid rgba(0,229,255,0.3);
-    background: rgba(0,229,255,0.06);
-    color: var(--accent);
-    font-size: 12px; font-weight: 500; letter-spacing: 0.5px;
-    padding: 5px 12px; border-radius: 999px;
-    margin-bottom: 28px;
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .badge::before { content: '⬡'; font-size: 10px; }
-
-  h1 {
-    font-size: clamp(40px, 7vw, 80px);
-    font-weight: 700;
-    line-height: 1.05;
-    letter-spacing: -2px;
-    margin-bottom: 20px;
-  }
-
-  h1 span {
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .subtitle {
-    font-size: 18px; color: var(--muted); max-width: 520px;
-    line-height: 1.6; margin-bottom: 44px;
-  }
-
-  .cta-group { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
-
-  .btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 13px 28px; border-radius: 10px;
-    font-family: inherit; font-size: 15px; font-weight: 600;
-    cursor: pointer; border: none; text-decoration: none;
-    transition: all 0.2s ease;
-  }
-
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent), #0099bb);
-    color: #000;
-    box-shadow: 0 0 24px rgba(0,229,255,0.25);
-  }
-
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 40px rgba(0,229,255,0.4);
-  }
-
-  .btn-outline {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text);
-  }
-
-  .btn-outline:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: rgba(0,229,255,0.04);
-  }
-
-  .btn-danger {
-    background: rgba(239,68,68,0.1);
-    border: 1px solid rgba(239,68,68,0.3);
-    color: var(--red);
-  }
-
-  .btn-danger:hover { background: rgba(239,68,68,0.2); }
-
-  /* ── Features ── */
-  .features {
-    position: relative; z-index: 1;
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px; padding: 0 40px 80px; max-width: 1100px; margin: 0 auto; width: 100%;
-  }
-
-  .feature-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px; padding: 24px;
-    transition: border-color 0.2s;
-  }
-
-  .feature-card:hover { border-color: rgba(0,229,255,0.3); }
-
-  .feature-icon { font-size: 28px; margin-bottom: 12px; }
-  .feature-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
-  .feature-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
-
-  /* ── App page ── */
-  #app-page { display: none; flex-direction: column; min-height: 100vh; }
-
-  .app-layout {
-    position: relative; z-index: 1;
-    display: grid; grid-template-columns: 320px 1fr;
-    gap: 0; flex: 1;
-  }
-
-  .sidebar {
-    border-right: 1px solid var(--border);
-    background: var(--surface);
-    display: flex; flex-direction: column;
-    height: calc(100vh - 65px); overflow: hidden;
-  }
-
-  .sidebar-header {
-    padding: 20px; border-bottom: 1px solid var(--border);
-  }
-
-  .sidebar-header h2 { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-
-  .search-box {
-    display: flex; align-items: center; gap: 8px;
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 8px; padding: 8px 12px; margin-top: 12px;
-  }
-
-  .search-box input {
-    background: none; border: none; outline: none;
-    color: var(--text); font-family: inherit; font-size: 14px; flex: 1;
-  }
-
-  .search-box input::placeholder { color: var(--muted); }
-
-  .doc-list { overflow-y: auto; flex: 1; }
-
-  .doc-item {
-    padding: 14px 20px; border-bottom: 1px solid var(--border);
-    cursor: pointer; transition: background 0.15s;
-    display: flex; flex-direction: column; gap: 4px;
-  }
-
-  .doc-item:hover { background: rgba(255,255,255,0.03); }
-  .doc-item.active { background: rgba(0,229,255,0.06); border-left: 2px solid var(--accent); }
-
-  .doc-item-name { font-size: 14px; font-weight: 500; }
-  .doc-item-meta { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
-
-  .main-panel {
-    display: flex; flex-direction: column;
-    height: calc(100vh - 65px); overflow-y: auto;
-    padding: 32px;
-  }
-
-  .empty-state {
-    flex: 1; display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    color: var(--muted); text-align: center; gap: 12px;
-  }
-
-  .empty-state-icon { font-size: 48px; }
-
-  /* ── Document detail ── */
-  .doc-header {
-    display: flex; align-items: flex-start; justify-content: space-between;
-    margin-bottom: 28px; gap: 16px;
-  }
-
-  .doc-title { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
-  .doc-subtitle { font-size: 13px; color: var(--muted); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
-
-  .export-controls {
-    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-  }
-
-  .format-select {
-    background: var(--surface); border: 1px solid var(--border);
-    color: var(--text); font-family: inherit; font-size: 14px;
-    padding: 10px 14px; border-radius: 8px; cursor: pointer; outline: none;
-  }
-
-  .format-select:focus { border-color: var(--accent); }
-
-  /* ── Elements table ── */
-  .elements-section { margin-top: 8px; }
-
-  .section-title {
-    font-size: 12px; font-weight: 600; color: var(--muted);
-    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
-  }
-
-  .elements-grid { display: flex; flex-direction: column; gap: 8px; }
-
-  .element-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; padding: 14px 18px;
-    display: flex; align-items: center; gap: 14px;
-    transition: border-color 0.2s;
-  }
-
-  .element-card:hover { border-color: rgba(0,229,255,0.2); }
-
-  .el-type-badge {
-    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
-    padding: 3px 8px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;
-    white-space: nowrap;
-  }
-
-  .el-type-PARTSTUDIO { background: rgba(0,229,255,0.1); color: var(--accent); }
-  .el-type-ASSEMBLY   { background: rgba(124,58,237,0.15); color: #a78bfa; }
-  .el-type-DRAWING    { background: rgba(245,158,11,0.1); color: var(--yellow); }
-
-  .el-name { font-size: 14px; font-weight: 500; flex: 1; }
-
-  .el-status {
-    font-size: 12px; font-family: 'JetBrains Mono', monospace;
-    display: flex; align-items: center; gap: 6px;
-  }
-
-  .status-dot { width: 6px; height: 6px; border-radius: 50%; }
-  .status-dot.waiting   { background: var(--muted); }
-  .status-dot.translating { background: var(--yellow); animation: pulse 1s infinite; }
-  .status-dot.done      { background: var(--green); }
-  .status-dot.failed    { background: var(--red); }
-  .status-dot.skipped   { background: var(--muted); }
-
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-  /* ── Progress bar ── */
-  .progress-container {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 20px; margin-bottom: 24px;
-    display: none;
-  }
-
-  .progress-container.visible { display: block; }
-
-  .progress-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 12px;
-  }
-
-  .progress-label { font-size: 14px; font-weight: 500; }
-  .progress-pct { font-size: 14px; font-family: 'JetBrains Mono', monospace; color: var(--accent); }
-
-  .progress-bar-bg {
-    height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
-  }
-
-  .progress-bar-fill {
-    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
-    border-radius: 3px; transition: width 0.4s ease;
-    width: 0%;
-  }
-
-  .progress-msg { font-size: 13px; color: var(--muted); margin-top: 10px; }
-
-  /* ── Download button ── */
-  .download-ready {
-    background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.3);
-    border-radius: 12px; padding: 20px; text-align: center; display: none;
-    margin-bottom: 24px;
-  }
-
-  .download-ready.visible { display: block; }
-  .download-ready h3 { color: var(--green); margin-bottom: 8px; }
-  .download-ready p { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
-
-  /* ── Toast ── */
-  #toast {
-    position: fixed; bottom: 24px; right: 24px; z-index: 999;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; padding: 12px 18px;
-    font-size: 14px; transform: translateY(60px); opacity: 0;
-    transition: all 0.3s ease; pointer-events: none;
-  }
-
-  #toast.show { transform: translateY(0); opacity: 1; }
-
-  /* ── User chip ── */
-  .user-chip {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 13px; color: var(--muted);
-  }
-
-  .user-avatar {
-    width: 28px; height: 28px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700; color: #000;
-  }
-
-  .loading-spinner {
-    display: inline-block; width: 16px; height: 16px;
-    border: 2px solid var(--border); border-top-color: var(--accent);
-    border-radius: 50%; animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .hidden { display: none !important; }
-
-  @media (max-width: 768px) {
-    nav { padding: 16px 20px; }
-    .features { padding: 0 20px 60px; grid-template-columns: 1fr; }
-    .app-layout { grid-template-columns: 1fr; }
-    .sidebar { height: auto; max-height: 40vh; }
-    .main-panel { padding: 20px; }
-  }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── TOKENS ── */
+:root {
+  --radius: 12px;
+  --transition: 0.18s ease;
+}
+
+[data-theme="dark"] {
+  --bg: #0f0f11;
+  --bg2: #18181c;
+  --surface: #1e1e24;
+  --surface2: #26262e;
+  --border: #2a2a35;
+  --text: #f5f5f7;
+  --text2: #a0a0b0;
+  --text3: #606070;
+  --accent: #5b5fcb;
+  --accent-hover: #6f73e0;
+  --accent-text: #ffffff;
+  --shadow: rgba(0,0,0,0.4);
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --bg2: #f5f5f7;
+  --surface: #ffffff;
+  --surface2: #f0f0f5;
+  --border: #e0e0e8;
+  --text: #1a1a2e;
+  --text2: #555570;
+  --text3: #9999b0;
+  --accent: #5b5fcb;
+  --accent-hover: #4a4eb8;
+  --accent-text: #ffffff;
+  --shadow: rgba(0,0,0,0.08);
+}
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, sans-serif;
+  min-height: 100vh;
+  line-height: 1.5;
+  transition: background var(--transition), color var(--transition);
+}
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 20px; border-radius: 8px;
+  font-family: inherit; font-size: 14px; font-weight: 500;
+  cursor: pointer; border: none; text-decoration: none;
+  transition: all var(--transition); white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--accent); color: var(--accent-text);
+}
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text2);
+}
+.btn-outline:hover { border-color: var(--text3); color: var(--text); }
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid rgba(220,60,60,0.3);
+  color: #e05555;
+  font-size: 13px; padding: 7px 14px;
+}
+.btn-danger:hover { background: rgba(220,60,60,0.07); }
+
+.btn-sm { font-size: 13px; padding: 8px 16px; }
+
+/* ── THEME TOGGLE ── */
+.theme-toggle {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 7px 10px;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--text2); font-family: inherit;
+  transition: all var(--transition);
+}
+.theme-toggle:hover { border-color: var(--text3); color: var(--text); }
+
+/* ── LANDING ── */
+#landing-page { display: flex; flex-direction: column; min-height: 100vh; }
+
+.nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 48px; height: 60px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg);
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.logo {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 16px; font-weight: 600; color: var(--text);
+  text-decoration: none; letter-spacing: -0.3px;
+}
+
+/* Logo: a hexagonal export icon */
+.logo-icon {
+  width: 30px; height: 30px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.logo-icon svg { width: 16px; height: 16px; }
+
+.nav-right { display: flex; align-items: center; gap: 10px; }
+
+/* ── HERO ── */
+.hero {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center;
+  padding: 100px 24px 80px;
+  max-width: 720px; margin: 0 auto; width: 100%;
+}
+
+.hero-title {
+  font-size: clamp(38px, 6vw, 64px);
+  font-weight: 700; letter-spacing: -2px; line-height: 1.08;
+  color: var(--text); margin-bottom: 20px;
+}
+
+.hero-sub {
+  font-size: 18px; color: var(--text2);
+  line-height: 1.65; max-width: 480px; margin-bottom: 36px;
+  font-weight: 400;
+}
+
+.hero-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* ── DIVIDER ── */
+.divider {
+  border: none; border-top: 1px solid var(--border);
+  margin: 0;
+}
+
+/* ── 3-UP FEATURES ── */
+.features {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--border);
+}
+
+.feat {
+  padding: 40px 40px;
+  border-right: 1px solid var(--border);
+  transition: background var(--transition);
+}
+
+.feat:last-child { border-right: none; }
+.feat:hover { background: var(--bg2); }
+
+.feat-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: var(--surface2); display: flex;
+  align-items: center; justify-content: center;
+  margin-bottom: 16px; font-size: 17px;
+  border: 1px solid var(--border);
+}
+
+.feat h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.feat p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* ── APP ── */
+#app-page { display: none; flex-direction: column; height: 100vh; overflow: hidden; }
+
+.app-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 52px; min-height: 52px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: relative; z-index: 10;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.app-nav .logo { font-size: 15px; }
+.app-nav .logo-icon { width: 26px; height: 26px; border-radius: 7px; }
+
+.nav-right-app { display: flex; align-items: center; gap: 8px; }
+
+.user-chip { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text2); }
+
+.avatar {
+  width: 26px; height: 26px; border-radius: 6px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: white;
+}
+
+/* ── WORKSPACE ── */
+.workspace {
+  display: grid; grid-template-columns: 260px 1fr 360px;
+  flex: 1; overflow: hidden;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  border-right: 1px solid var(--border);
+  background: var(--bg2);
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.sidebar-top {
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text3);
+  margin-bottom: 10px; font-family: 'DM Mono', monospace;
+}
+
+.search {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 7px; padding: 7px 10px;
+  transition: border-color var(--transition), background var(--transition);
+}
+.search:focus-within { border-color: var(--accent); }
+.search svg { opacity: 0.4; flex-shrink: 0; }
+.search input {
+  background: none; border: none; outline: none;
+  color: var(--text); font-family: inherit; font-size: 13px; width: 100%;
+}
+.search input::placeholder { color: var(--text3); }
+
+.doc-list { flex: 1; overflow-y: auto; }
+.doc-list::-webkit-scrollbar { width: 4px; }
+.doc-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.doc-item {
+  padding: 10px 14px; cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all var(--transition);
+  border-bottom: 1px solid rgba(128,128,128,0.06);
+}
+.doc-item:hover { background: rgba(128,128,128,0.06); }
+.doc-item.active { background: rgba(91,95,203,0.08); border-left-color: var(--accent); }
+[data-theme="light"] .doc-item.active { background: rgba(91,95,203,0.06); }
+
+.doc-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.doc-meta { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; }
+
+/* ── MAIN ── */
+.main-panel {
+  overflow-y: auto; padding: 24px;
+  background: var(--bg);
+  transition: background var(--transition);
+}
+.main-panel::-webkit-scrollbar { width: 4px; }
+.main-panel::-webkit-scrollbar-thumb { background: var(--border); }
+
+.empty-state {
+  height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px; color: var(--text3); text-align: center;
+}
+
+.empty-icon {
+  width: 52px; height: 52px; border-radius: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; margin-bottom: 4px;
+}
+
+.empty-state strong { font-size: 14px; font-weight: 600; color: var(--text2); }
+.empty-state p { font-size: 13px; max-width: 200px; }
+
+.doc-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 20px; gap: 12px; flex-wrap: wrap;
+}
+
+.doc-header h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; }
+.doc-header .doc-id { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 3px; }
+
+.export-bar { display: flex; gap: 8px; align-items: center; }
+
+.format-select {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); font-family: inherit; font-size: 13px;
+  padding: 8px 12px; border-radius: 7px; cursor: pointer; outline: none;
+  transition: all var(--transition);
+}
+.format-select:focus { border-color: var(--accent); }
+
+/* Progress */
+.prog-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px; margin-bottom: 16px; display: none;
+  transition: background var(--transition);
+}
+.prog-card.show { display: block; }
+.prog-head { display: flex; justify-content: space-between; margin-bottom: 10px; }
+.prog-label { font-size: 13px; font-weight: 500; }
+.prog-pct { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--accent); }
+.prog-track { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0%; transition: width 0.4s ease; }
+.prog-detail { font-size: 11px; color: var(--text3); margin-top: 8px; font-family: 'DM Mono', monospace; }
+
+/* Download */
+.dl-card {
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px; margin-bottom: 16px;
+  display: none; background: var(--surface2);
+  transition: background var(--transition);
+}
+.dl-card.show { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dl-card .dl-text h3 { font-size: 14px; font-weight: 600; color: var(--text); }
+.dl-card .dl-text p { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* Elements */
+.section-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text3);
+  margin-bottom: 10px; font-family: 'DM Mono', monospace;
+}
+
+.el-list { display: flex; flex-direction: column; gap: 4px; }
+
+.el-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer; transition: all var(--transition);
+}
+.el-card:hover { border-color: var(--text3); }
+.el-card.selected { border-color: var(--accent); background: rgba(91,95,203,0.06); }
+
+.el-badge {
+  font-size: 9px; font-weight: 600; letter-spacing: 0.8px;
+  padding: 2px 7px; border-radius: 4px;
+  font-family: 'DM Mono', monospace; white-space: nowrap;
+  text-transform: uppercase;
+}
+.badge-PARTSTUDIO { background: rgba(91,95,203,0.12); color: var(--accent); }
+.badge-ASSEMBLY { background: rgba(34,197,180,0.1); color: #22c5b4; }
+.badge-DRAWING { background: rgba(245,158,11,0.1); color: #d4930a; }
+
+.el-name { font-size: 13px; font-weight: 500; flex: 1; }
+
+.el-status {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace;
+}
+.dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text3); }
+.dot.waiting { background: var(--text3); }
+.dot.translating { background: #f59e0b; animation: blink 1s infinite; }
+.dot.done { background: #22c55e; }
+.dot.failed { background: #ef4444; }
+
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+/* ── 3D PANEL ── */
+.preview-panel {
+  border-left: 1px solid var(--border);
+  background: var(--bg2);
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.preview-header {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+.preview-header-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text3);
+  font-family: 'DM Mono', monospace;
+}
+
+#canvas-wrap {
+  flex: 1; position: relative; background: var(--bg);
+  transition: background var(--transition);
+}
+
+#three-canvas { width: 100%; height: 100%; display: block; }
+
+.canvas-placeholder {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px; color: var(--text3); text-align: center; padding: 24px;
+  pointer-events: none;
+}
+.canvas-placeholder svg { opacity: 0.25; }
+.canvas-placeholder p { font-size: 12px; line-height: 1.5; max-width: 180px; }
+
+.preview-toolbar {
+  padding: 8px 14px; border-top: 1px solid var(--border);
+  display: flex; gap: 6px; display: none;
+}
+
+.ctrl-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text2); font-family: 'DM Mono', monospace;
+  font-size: 11px; padding: 4px 9px; border-radius: 5px;
+  cursor: pointer; transition: all var(--transition);
+}
+.ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.preview-footer {
+  padding: 9px 14px; border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace;
+}
+
+/* ── MISC ── */
+.spin {
+  display: inline-block; width: 13px; height: 13px;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: rot 0.7s linear infinite;
+}
+@keyframes rot { to { transform: rotate(360deg); } }
+
+#toast {
+  position: fixed; bottom: 20px; left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 18px; font-size: 13px;
+  z-index: 9999; opacity: 0;
+  transition: all 0.25s ease; white-space: nowrap;
+  box-shadow: 0 4px 20px var(--shadow);
+}
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+.hidden { display: none !important; }
+
+@media (max-width: 1100px) {
+  .workspace { grid-template-columns: 240px 1fr; }
+  .preview-panel { display: none; }
+}
+@media (max-width: 680px) {
+  .workspace { grid-template-columns: 1fr; }
+  .sidebar { height: 200px; border-right: none; border-bottom: 1px solid var(--border); }
+  .features { grid-template-columns: 1fr; }
+  .nav { padding: 0 20px; }
+}
 </style>
 </head>
 <body>
-<div class="grid-bg"></div>
 
-<!-- ── LANDING PAGE ── -->
+<!-- ══════════════════════════════════
+     LANDING
+══════════════════════════════════ -->
 <div id="landing-page">
-  <nav>
-    <div class="logo">
-      <div class="logo-icon">⬡</div>
+  <nav class="nav">
+    <a href="#" class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </div>
       OnExport
-    </div>
-    <div class="nav-actions" id="nav-actions">
-      <a href="/auth/login" class="btn btn-primary">Connect Onshape →</a>
+    </a>
+    <div class="nav-right">
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="theme-icon">☀️</span>
+        <span id="theme-label">Light</span>
+      </button>
+      <a href="/auth/login" class="btn btn-primary btn-sm">Get started</a>
     </div>
   </nav>
 
   <div class="hero">
-    <div class="badge">Onshape REST API v10</div>
-    <h1>Export everything.<br /><span>Automatically.</span></h1>
-    <p class="subtitle">Connect your Onshape account and bulk-export every Part Studio, Assembly, and Drawing from any document — in seconds.</p>
-    <div class="cta-group">
-      <a href="/auth/login" class="btn btn-primary" id="login-btn">Connect with Onshape</a>
-      <a href="https://onshape-public.github.io/docs/" target="_blank" class="btn btn-outline">API Docs ↗</a>
+    <h1 class="hero-title">Export your Onshape<br>models in seconds.</h1>
+    <p class="hero-sub">Connect your Onshape account and bulk-export Part Studios, Assemblies, and Drawings as STEP, STL, or IGES.</p>
+    <div class="hero-actions">
+      <a href="/auth/login" class="btn btn-primary">Connect with Onshape</a>
     </div>
   </div>
 
   <div class="features">
-    <div class="feature-card">
-      <div class="feature-icon">🔐</div>
-      <div class="feature-title">OAuth2 Secure Login</div>
-      <div class="feature-desc">Industry-standard OAuth2 authentication — your credentials never touch this server.</div>
+    <div class="feat">
+      <div class="feat-icon">🔒</div>
+      <h3>Secure OAuth2</h3>
+      <p>Your credentials never touch this server. Industry-standard OAuth2 authentication.</p>
     </div>
-    <div class="feature-card">
-      <div class="feature-icon">📦</div>
-      <div class="feature-title">Bulk ZIP Export</div>
-      <div class="feature-desc">All Part Studios, Assemblies, and Drawings exported into a single ZIP file.</div>
+    <div class="feat">
+      <div class="feat-icon">📦</div>
+      <h3>Bulk ZIP Export</h3>
+      <p>All Part Studios, Assemblies, and Drawings exported into a single ZIP file.</p>
     </div>
-    <div class="feature-card">
-      <div class="feature-icon">⚡</div>
-      <div class="feature-title">Multiple Formats</div>
-      <div class="feature-desc">Export as STEP, STL, or IGES. Drawings automatically export as PDF.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">📡</div>
-      <div class="feature-title">Live Progress</div>
-      <div class="feature-desc">Real-time export status via Server-Sent Events — watch each element translate.</div>
+    <div class="feat">
+      <div class="feat-icon">🧊</div>
+      <h3>3D Preview</h3>
+      <p>Preview exported STL models directly in your browser with a WebGL viewer.</p>
     </div>
   </div>
 </div>
 
-<!-- ── APP PAGE ── -->
+<!-- ══════════════════════════════════
+     APP
+══════════════════════════════════ -->
 <div id="app-page">
-  <nav>
-    <div class="logo">
-      <div class="logo-icon">⬡</div>
+  <nav class="app-nav">
+    <a href="#" class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </div>
       OnExport
-    </div>
-    <div class="nav-actions">
+    </a>
+    <div class="nav-right-app">
+      <button class="theme-toggle" onclick="toggleTheme()" style="font-size:12px;padding:5px 9px;">
+        <span id="app-theme-icon">☀️</span>
+      </button>
       <div class="user-chip">
-        <div class="user-avatar" id="user-avatar">?</div>
-        <span id="user-name">Loading...</span>
+        <div class="avatar" id="user-avatar">?</div>
+        <span id="user-name" style="font-size:13px">Loading…</span>
       </div>
       <a href="/auth/logout" class="btn btn-danger">Sign out</a>
     </div>
   </nav>
 
-  <div class="app-layout" style="position:relative;z-index:1">
-    <!-- Sidebar: document list -->
+  <div class="workspace">
+
+    <!-- SIDEBAR -->
     <div class="sidebar">
-      <div class="sidebar-header">
-        <h2>Your Documents</h2>
-        <div class="search-box">
-          <span>🔍</span>
-          <input type="text" id="search-input" placeholder="Search documents..." />
+      <div class="sidebar-top">
+        <div class="sidebar-label">Documents</div>
+        <div class="search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="search-input" placeholder="Search…" />
         </div>
       </div>
       <div class="doc-list" id="doc-list">
-        <div style="padding:20px;text-align:center;color:var(--muted);">
-          <div class="loading-spinner"></div>
-        </div>
+        <div style="padding:18px;text-align:center;color:var(--text3)"><div class="spin"></div></div>
       </div>
     </div>
 
-    <!-- Main panel -->
+    <!-- MAIN -->
     <div class="main-panel" id="main-panel">
       <div class="empty-state" id="empty-state">
-        <div class="empty-state-icon">📂</div>
+        <div class="empty-icon">◫</div>
         <strong>Select a document</strong>
-        <p style="font-size:14px">Choose a document from the sidebar to begin exporting.</p>
+        <p>Choose a document to start exporting.</p>
       </div>
 
       <div id="doc-detail" class="hidden">
         <div class="doc-header">
           <div>
-            <div class="doc-title" id="detail-title"></div>
-            <div class="doc-subtitle" id="detail-id"></div>
+            <h2 id="detail-title"></h2>
+            <div class="doc-id" id="detail-id"></div>
           </div>
-          <div class="export-controls">
+          <div class="export-bar">
             <select class="format-select" id="format-select">
               <option value="STEP">STEP (.step)</option>
               <option value="STL">STL (.stl)</option>
               <option value="IGES">IGES (.igs)</option>
             </select>
-            <button class="btn btn-primary" id="export-btn" onclick="startExport()">
-              ⬇ Export All
-            </button>
+            <button class="btn btn-primary btn-sm" id="export-btn" onclick="startExport()">Export All</button>
           </div>
         </div>
 
-        <!-- Progress -->
-        <div class="progress-container" id="progress-container">
-          <div class="progress-header">
-            <span class="progress-label" id="progress-label">Preparing export...</span>
-            <span class="progress-pct" id="progress-pct">0%</span>
+        <div class="prog-card" id="prog-card">
+          <div class="prog-head">
+            <span class="prog-label" id="prog-label">Preparing…</span>
+            <span class="prog-pct" id="prog-pct">0%</span>
           </div>
-          <div class="progress-bar-bg">
-            <div class="progress-bar-fill" id="progress-bar"></div>
-          </div>
-          <div class="progress-msg" id="progress-msg"></div>
+          <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+          <div class="prog-detail" id="prog-detail"></div>
         </div>
 
-        <!-- Download ready -->
-        <div class="download-ready" id="download-ready">
-          <h3>✅ Export complete!</h3>
-          <p id="download-summary"></p>
-          <button class="btn btn-primary" id="download-btn" onclick="triggerDownload()">⬇ Download ZIP</button>
+        <div class="dl-card" id="dl-card">
+          <div class="dl-text">
+            <h3>Export complete</h3>
+            <p id="dl-summary"></p>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="triggerDownload()">Download ZIP</button>
         </div>
 
-        <!-- Elements -->
-        <div class="elements-section">
-          <div class="section-title">Elements in this document</div>
-          <div class="elements-grid" id="elements-grid">
-            <div style="color:var(--muted);font-size:14px">Loading elements...</div>
-          </div>
+        <div class="section-label">Elements</div>
+        <div class="el-list" id="el-list">
+          <div style="color:var(--text3);font-size:13px"><div class="spin" style="display:inline-block;margin-right:8px"></div>Loading…</div>
         </div>
       </div>
     </div>
+
+    <!-- 3D PREVIEW -->
+    <div class="preview-panel">
+      <div class="preview-header">
+        <span class="preview-header-label">3D Preview</span>
+        <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace" id="preview-hint">Export STL to preview</span>
+      </div>
+
+      <div id="canvas-wrap">
+        <canvas id="three-canvas"></canvas>
+        <div class="canvas-placeholder" id="canvas-placeholder">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          <p>Export as STL then click a part to preview it here</p>
+        </div>
+      </div>
+
+      <div class="preview-toolbar" id="preview-toolbar">
+        <button class="ctrl-btn" onclick="resetCam()">Reset</button>
+        <button class="ctrl-btn" onclick="toggleWire()">Wire</button>
+        <button class="ctrl-btn" onclick="fitView()">Fit</button>
+      </div>
+
+      <div class="preview-footer" id="preview-footer">No model loaded</div>
+    </div>
+
   </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-let currentDocId = null;
-let currentDocName = '';
-let totalElements = 0;
-let doneElements = 0;
-let exportEventSource = null;
+// ── THEME ──────────────────────────────────────────────
+let theme = localStorage.getItem('theme') || 'dark';
+applyTheme(theme);
 
-// ── Init ──────────────────────────────────────────────────────────────────────
+function applyTheme(t) {
+  theme = t;
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('theme', t);
+  const isDark = t === 'dark';
+  const icon = isDark ? '☀️' : '🌙';
+  const label = isDark ? 'Light' : 'Dark';
+  const ti = document.getElementById('theme-icon');
+  const tl = document.getElementById('theme-label');
+  const ati = document.getElementById('app-theme-icon');
+  if (ti) ti.textContent = icon;
+  if (tl) tl.textContent = label;
+  if (ati) ati.textContent = icon;
+  if (renderer) {
+    const bg = isDark ? 0x0f0f11 : 0xf5f5f7;
+    renderer.setClearColor(bg, 1);
+    scene && (scene.background = new THREE.Color(bg));
+  }
+}
+
+function toggleTheme() { applyTheme(theme === 'dark' ? 'light' : 'dark'); }
+
+// ── INIT ──────────────────────────────────────────────
 async function init() {
   const r = await fetch('/auth/status');
   const { authenticated } = await r.json();
   if (authenticated) {
     document.getElementById('landing-page').style.display = 'none';
-    document.getElementById('app-page').style.display = 'flex';
-    document.getElementById('app-page').style.flexDirection = 'column';
-    loadUser();
-    loadDocuments();
+    const ap = document.getElementById('app-page');
+    ap.style.display = 'flex';
+    ap.style.flexDirection = 'column';
+    loadUser(); loadDocs(); initThree();
   }
 }
 
 async function loadUser() {
-  const r = await fetch('/api/user');
-  if (!r.ok) return;
-  const u = await r.json();
-  const name = u.name || u.email || 'User';
-  document.getElementById('user-name').textContent = name;
-  document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+  try {
+    const r = await fetch('/api/user');
+    if (!r.ok) return;
+    const u = await r.json();
+    const n = u.name || u.email || 'User';
+    document.getElementById('user-name').textContent = n;
+    document.getElementById('user-avatar').textContent = n[0].toUpperCase();
+  } catch {}
 }
 
-// ── Documents ─────────────────────────────────────────────────────────────────
-let searchTimer;
 document.addEventListener('DOMContentLoaded', () => {
   init();
+  let t;
   const si = document.getElementById('search-input');
-  if (si) si.addEventListener('input', () => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => loadDocuments(si.value), 400);
-  });
+  if (si) si.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => loadDocs(si.value), 350); });
 });
 
-async function loadDocuments(q = '') {
+// ── DOCUMENTS ─────────────────────────────────────────
+async function loadDocs(q = '') {
   const list = document.getElementById('doc-list');
-  list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);"><div class="loading-spinner"></div></div>';
-  const r = await fetch(`/api/documents?q=${encodeURIComponent(q)}&limit=20`);
-  const data = await r.json();
-  const docs = data.items || [];
-  if (!docs.length) {
-    list.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:14px">No documents found.</div>';
-    return;
-  }
-  list.innerHTML = docs.map(d => `
-    <div class="doc-item" onclick="selectDoc('${d.id}','${escHtml(d.name)}')" id="doc-${d.id}">
-      <div class="doc-item-name">${escHtml(d.name)}</div>
-      <div class="doc-item-meta">${timeAgo(d.modifiedAt)}</div>
-    </div>
-  `).join('');
+  list.innerHTML = '<div style="padding:18px;text-align:center;color:var(--text3)"><div class="spin"></div></div>';
+  try {
+    const r = await fetch(`/api/documents?q=${encodeURIComponent(q)}&limit=20`);
+    const data = await r.json();
+    const docs = data.items || [];
+    if (!docs.length) { list.innerHTML = '<div style="padding:16px;color:var(--text3);font-size:13px">No documents found.</div>'; return; }
+    list.innerHTML = docs.map(d => `
+      <div class="doc-item" onclick="selectDoc('${d.id}','${esc(d.name)}')" id="doc-${d.id}">
+        <div class="doc-name">${esc(d.name)}</div>
+        <div class="doc-meta">${ago(d.modifiedAt)}</div>
+      </div>`).join('');
+  } catch { list.innerHTML = '<div style="padding:16px;color:#e05555;font-size:13px">Failed to load.</div>'; }
 }
 
-function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-function timeAgo(iso) {
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function ago(iso) {
   if (!iso) return '';
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff/60000), h = Math.floor(m/60), d = Math.floor(h/24);
-  if (d > 0) return `${d}d ago`;
-  if (h > 0) return `${h}h ago`;
-  if (m > 0) return `${m}m ago`;
-  return 'just now';
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  if (s < 86400) return Math.floor(s/3600) + 'h ago';
+  return Math.floor(s/86400) + 'd ago';
 }
 
-// ── Select document ───────────────────────────────────────────────────────────
+// ── SELECT DOC ─────────────────────────────────────────
+let currentDoc = null, totalEls = 0, doneEls = 0, sse = null;
+
 async function selectDoc(did, name) {
-  currentDocId = did; currentDocName = name;
-  document.querySelectorAll('.doc-item').forEach(el => el.classList.remove('active'));
+  currentDoc = { id: did, name };
+  document.querySelectorAll('.doc-item').forEach(e => e.classList.remove('active'));
   document.getElementById(`doc-${did}`)?.classList.add('active');
   document.getElementById('empty-state').classList.add('hidden');
   document.getElementById('doc-detail').classList.remove('hidden');
   document.getElementById('detail-title').textContent = name;
-  document.getElementById('detail-id').textContent = `id: ${did}`;
-  document.getElementById('progress-container').classList.remove('visible');
-  document.getElementById('download-ready').classList.remove('visible');
-  document.getElementById('elements-grid').innerHTML =
-    '<div style="color:var(--muted);font-size:14px"><div class="loading-spinner" style="display:inline-block"></div> Loading...</div>';
+  document.getElementById('detail-id').textContent = did;
+  document.getElementById('prog-card').classList.remove('show');
+  document.getElementById('dl-card').classList.remove('show');
+  clearPreview();
 
-  const r = await fetch(`/api/documents/${did}/elements`);
-  const data = await r.json();
-  const els = (data.elements || []).filter(e => ['PARTSTUDIO','ASSEMBLY','DRAWING'].includes(e.elementType));
-  totalElements = els.length;
+  const grid = document.getElementById('el-list');
+  grid.innerHTML = '<div style="color:var(--text3);font-size:13px"><div class="spin" style="display:inline-block;margin-right:8px"></div>Loading…</div>';
 
-  if (!els.length) {
-    document.getElementById('elements-grid').innerHTML =
-      '<div style="color:var(--muted);font-size:14px">No exportable elements (Part Studios, Assemblies, or Drawings) found.</div>';
-    return;
-  }
-
-  document.getElementById('elements-grid').innerHTML = els.map(el => `
-    <div class="element-card" id="el-${el.id}">
-      <span class="el-type-badge el-type-${el.elementType}">${el.elementType}</span>
-      <span class="el-name">${escHtml(el.name)}</span>
-      <span class="el-status" id="status-${el.id}">
-        <span class="status-dot waiting"></span>
-        <span>waiting</span>
-      </span>
-    </div>
-  `).join('');
+  try {
+    const r = await fetch(`/api/documents/${did}/elements`);
+    const data = await r.json();
+    const els = (data.elements||[]).filter(e=>['PARTSTUDIO','ASSEMBLY','DRAWING'].includes(e.elementType));
+    totalEls = els.length;
+    if (!els.length) { grid.innerHTML = '<div style="color:var(--text3);font-size:13px">No exportable elements found.</div>'; return; }
+    grid.innerHTML = els.map(el=>`
+      <div class="el-card" id="el-${el.id}" onclick="previewEl('${el.id}')">
+        <span class="el-badge badge-${el.elementType}">${el.elementType}</span>
+        <span class="el-name">${esc(el.name)}</span>
+        <span class="el-status" id="status-${el.id}"><span class="dot waiting"></span><span>waiting</span></span>
+      </div>`).join('');
+  } catch { grid.innerHTML = '<div style="color:#e05555;font-size:13px">Failed to load elements.</div>'; }
 }
 
-// ── Export ────────────────────────────────────────────────────────────────────
+// ── EXPORT ────────────────────────────────────────────
 function startExport() {
-  if (!currentDocId) return;
-  if (exportEventSource) { exportEventSource.close(); exportEventSource = null; }
+  if (!currentDoc) return;
+  if (sse) { sse.close(); sse = null; }
+  const fmt = document.getElementById('format-select').value;
+  doneEls = 0;
+  document.getElementById('prog-card').classList.add('show');
+  document.getElementById('dl-card').classList.remove('show');
+  const btn = document.getElementById('export-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin"></div>';
+  setProgress(0, 'Starting…', '');
+  document.querySelectorAll('.el-status').forEach(e => { e.innerHTML = '<span class="dot waiting"></span><span>waiting</span>'; });
 
-  const format = document.getElementById('format-select').value;
-  doneElements = 0;
-
-  document.getElementById('progress-container').classList.add('visible');
-  document.getElementById('download-ready').classList.remove('visible');
-  document.getElementById('export-btn').disabled = true;
-  document.getElementById('export-btn').textContent = '⏳ Exporting...';
-  setProgress(0, 'Starting translation...', '');
-
-  // Reset element statuses
-  document.querySelectorAll('.el-status').forEach(el => {
-    el.innerHTML = '<span class="status-dot waiting"></span><span>waiting</span>';
-  });
-
-  exportEventSource = new EventSource(
-    `/api/export/${currentDocId}/progress?format=${format}`
-  );
-
-  exportEventSource.onmessage = (e) => {
+  sse = new EventSource(`/api/export/${currentDoc.id}/progress?format=${fmt}`);
+  sse.onmessage = e => {
     const msg = JSON.parse(e.data);
-
-    if (msg.type === 'start') {
-      totalElements = msg.total;
-      setProgress(0, `Translating 0 of ${totalElements} elements...`, '');
-    }
-
+    if (msg.type === 'start') { totalEls = msg.total; setProgress(0, `0 of ${totalEls} translated`, ''); }
     if (msg.type === 'progress') {
-      const { index, name, status, elementType } = msg;
-      // Update card
-      const statusEl = document.querySelector(`#elements-grid .element-card:nth-child(${index+1}) .el-status`);
-      if (statusEl) {
-        const labels = { translating:'translating', done:'done', failed:'failed', skipped:'skipped' };
-        statusEl.innerHTML = `<span class="status-dot ${status}"></span><span>${labels[status]||status}</span>`;
-      }
-
-      if (status === 'done' || status === 'failed') {
-        doneElements++;
-        const pct = Math.round((doneElements / totalElements) * 100);
-        setProgress(pct, `Translated ${doneElements} of ${totalElements} elements`, `Current: ${name}`);
-      } else if (status === 'translating') {
-        setProgress(
-          Math.round((doneElements / totalElements) * 100),
-          `Translating ${doneElements+1} of ${totalElements} elements`,
-          `Processing: ${name} (${elementType})`
-        );
+      const el = document.querySelector(`#el-list .el-card:nth-child(${msg.index+1}) .el-status`);
+      if (el) el.innerHTML = `<span class="dot ${msg.status}"></span><span>${msg.status}</span>`;
+      if (msg.status === 'done' || msg.status === 'failed') {
+        doneEls++;
+        setProgress(Math.round(doneEls/totalEls*100), `${doneEls} of ${totalEls} translated`, msg.name);
       }
     }
-
     if (msg.type === 'complete') {
-      exportEventSource.close(); exportEventSource = null;
-      setProgress(100, 'All elements translated!', '');
-      const done = (msg.results||[]).filter(r => r.status === 'done').length;
-      const failed = (msg.results||[]).filter(r => r.status === 'failed').length;
-      document.getElementById('download-summary').textContent =
-        `${done} element${done!==1?'s':''} ready to download${failed>0?` (${failed} failed)`:''}`;
-      document.getElementById('download-ready').classList.add('visible');
-      document.getElementById('export-btn').disabled = false;
-      document.getElementById('export-btn').textContent = '⬇ Export All';
-      toast('✅ Export complete! Click Download ZIP.', 4000);
+      sse.close(); sse = null;
+      setProgress(100, 'Complete', '');
+      const ok = (msg.results||[]).filter(r=>r.status==='done').length;
+      const fail = (msg.results||[]).filter(r=>r.status==='failed').length;
+      document.getElementById('dl-summary').textContent = `${ok} file${ok!==1?'s':''}${fail>0?`, ${fail} failed`:''}`;
+      document.getElementById('dl-card').classList.add('show');
+      btn.disabled = false; btn.textContent = 'Export All';
+      document.getElementById('preview-hint').textContent = fmt==='STL' ? 'Click a part to preview' : 'Preview for STL only';
+      toast('Export complete');
     }
-
     if (msg.type === 'error') {
-      exportEventSource.close(); exportEventSource = null;
-      toast('❌ Export error: ' + msg.error, 5000);
-      document.getElementById('export-btn').disabled = false;
-      document.getElementById('export-btn').textContent = '⬇ Export All';
+      sse.close(); sse = null;
+      toast('Error: ' + msg.error);
+      btn.disabled = false; btn.textContent = 'Export All';
     }
   };
-
-  exportEventSource.onerror = () => {
-    exportEventSource.close(); exportEventSource = null;
-    toast('Connection lost during export.', 5000);
-    document.getElementById('export-btn').disabled = false;
-    document.getElementById('export-btn').textContent = '⬇ Export All';
-  };
+  sse.onerror = () => { if (sse) { sse.close(); sse = null; } btn.disabled = false; btn.textContent = 'Export All'; };
 }
 
 function triggerDownload() {
-  const format = document.getElementById('format-select').value;
-  window.location.href = `/api/export/${currentDocId}?format=${format}`;
+  window.location.href = `/api/export/${currentDoc.id}?format=${document.getElementById('format-select').value}`;
 }
 
-function setProgress(pct, label, msg) {
-  document.getElementById('progress-bar').style.width = pct + '%';
-  document.getElementById('progress-pct').textContent = pct + '%';
-  document.getElementById('progress-label').textContent = label;
-  document.getElementById('progress-msg').textContent = msg;
+function setProgress(pct, label, detail) {
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-pct').textContent = pct + '%';
+  document.getElementById('prog-label').textContent = label;
+  document.getElementById('prog-detail').textContent = detail;
 }
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
-function toast(msg, dur=3000) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), dur);
+// ── 3D PREVIEW ────────────────────────────────────────
+let renderer, scene, camera, orb, meshObj, wireMode = false, animId;
+
+function initThree() {
+  const wrap = document.getElementById('canvas-wrap');
+  const canvas = document.getElementById('three-canvas');
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  const isDark = theme === 'dark';
+  renderer.setClearColor(isDark ? 0x0f0f11 : 0xf5f5f7, 1);
+  resize3d();
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(isDark ? 0x0f0f11 : 0xf5f5f7);
+
+  const grid = new THREE.GridHelper(30, 30, isDark ? 0x222235 : 0xddddee, isDark ? 0x1a1a26 : 0xe8e8f0);
+  grid.position.y = -1; scene.add(grid);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  const d1 = new THREE.DirectionalLight(0xffffff, 0.9); d1.position.set(5,10,5); scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0x8888ff, 0.3); d2.position.set(-5,5,-5); scene.add(d2);
+
+  camera = new THREE.PerspectiveCamera(45, wrap.clientWidth/wrap.clientHeight, 0.01, 1000);
+  orb = makeOrbit(camera, canvas);
+
+  window.addEventListener('resize', resize3d);
+  (function loop() { animId = requestAnimationFrame(loop); renderer.render(scene, camera); })();
 }
+
+function resize3d() {
+  const w = document.getElementById('canvas-wrap');
+  if (!renderer || !w) return;
+  renderer.setSize(w.clientWidth, w.clientHeight, false);
+  if (camera) { camera.aspect = w.clientWidth/w.clientHeight; camera.updateProjectionMatrix(); }
+}
+
+function makeOrbit(cam, el) {
+  let drag=false, lx=0, ly=0, th=0.8, ph=0.8, r=6;
+  const tgt = new THREE.Vector3();
+  const update = () => {
+    cam.position.set(tgt.x+r*Math.sin(ph)*Math.sin(th), tgt.y+r*Math.cos(ph), tgt.z+r*Math.sin(ph)*Math.cos(th));
+    cam.lookAt(tgt);
+  };
+  update();
+  el.addEventListener('mousedown', e=>{ drag=true; lx=e.clientX; ly=e.clientY; });
+  window.addEventListener('mouseup', ()=>drag=false);
+  window.addEventListener('mousemove', e=>{ if(!drag)return; th-=(e.clientX-lx)*0.01; ph=Math.max(0.1,Math.min(Math.PI-0.1,ph-(e.clientY-ly)*0.01)); lx=e.clientX; ly=e.clientY; update(); });
+  el.addEventListener('wheel', e=>{ r=Math.max(0.5,Math.min(100,r+e.deltaY*0.01)); update(); e.preventDefault(); },{passive:false});
+  return { reset(){th=0.8;ph=0.8;r=6;tgt.set(0,0,0);update();}, setR(v){r=v;update();} };
+}
+
+function resetCam(){ if(orb) orb.reset(); }
+function fitView(){ if(!meshObj||!orb) return; const b=new THREE.Box3().setFromObject(meshObj); const s=b.getSize(new THREE.Vector3()); orb.setR(Math.max(s.x,s.y,s.z)*2.2); }
+function toggleWire(){ wireMode=!wireMode; if(meshObj) meshObj.traverse(c=>{ if(c.material) c.material.wireframe=wireMode; }); }
+function clearPreview(){ if(meshObj&&scene){ scene.remove(meshObj); meshObj=null; } document.getElementById('canvas-placeholder').style.display='flex'; document.getElementById('preview-toolbar').style.display='none'; document.getElementById('preview-footer').textContent='No model loaded'; document.getElementById('preview-hint').textContent='Export STL to preview'; }
+
+async function previewEl(eid) {
+  const fmt = document.getElementById('format-select').value;
+  if (fmt !== 'STL') { toast('Switch to STL format for 3D preview'); return; }
+  const statusEl = document.getElementById(`status-${eid}`);
+  if (!statusEl || !statusEl.querySelector('.done')) { toast('Export this document first, then click a part to preview'); return; }
+  document.getElementById('preview-hint').textContent = 'Loading…';
+  try {
+    const r = await fetch(`/api/export/${currentDoc.id}?format=STL`);
+    if (!r.ok) throw new Error('Export failed');
+    const buf = await r.arrayBuffer();
+    const stl = extractSTL(buf);
+    if (!stl) { toast('Could not extract STL from ZIP'); document.getElementById('preview-hint').textContent='Failed'; return; }
+    loadSTL(stl);
+  } catch(e) { toast('Preview failed'); document.getElementById('preview-hint').textContent='Failed'; }
+}
+
+function extractSTL(buffer) {
+  const b = new Uint8Array(buffer);
+  let off = 0;
+  while (off < b.length - 4) {
+    if (b[off]===0x50&&b[off+1]===0x4B&&b[off+2]===0x03&&b[off+3]===0x04) {
+      const cm=b[off+8]|(b[off+9]<<8), cs=b[off+18]|(b[off+19]<<8)|(b[off+20]<<16)|(b[off+21]<<24);
+      const us=b[off+22]|(b[off+23]<<8)|(b[off+24]<<16)|(b[off+25]<<24);
+      const nl=b[off+26]|(b[off+27]<<8), xl=b[off+28]|(b[off+29]<<8);
+      const name=new TextDecoder().decode(b.slice(off+30,off+30+nl));
+      const ds=off+30+nl+xl;
+      if(name.toLowerCase().endsWith('.stl')&&cm===0&&us>0) return buffer.slice(ds,ds+us);
+      off=ds+cs;
+    } else off++;
+  }
+  return null;
+}
+
+function loadSTL(buffer) {
+  const geo = parseSTL(buffer);
+  if (!geo) { toast('Could not parse STL'); return; }
+  if (meshObj) scene.remove(meshObj);
+  meshObj = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color:0x5b5fcb, specular:0x222244, shininess:50, side:THREE.DoubleSide }));
+  geo.computeBoundingBox();
+  const c=new THREE.Vector3(); geo.boundingBox.getCenter(c); meshObj.position.sub(c);
+  scene.add(meshObj);
+  const s=new THREE.Vector3(); geo.boundingBox.getSize(s);
+  if(orb) orb.setR(Math.max(s.x,s.y,s.z)*2.2);
+  document.getElementById('canvas-placeholder').style.display='none';
+  document.getElementById('preview-toolbar').style.display='flex';
+  const tris = geo.attributes.position.count/3;
+  document.getElementById('preview-footer').textContent=`${tris.toLocaleString()} triangles · drag to rotate · scroll to zoom`;
+  document.getElementById('preview-hint').textContent='Model loaded';
+  toast('3D model loaded');
+}
+
+function parseSTL(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const geo = new THREE.BufferGeometry();
+  const sample = new TextDecoder().decode(bytes.slice(0,256));
+  const isASCII = sample.includes('solid')&&sample.includes('facet');
+  if (!isASCII) {
+    const view = new DataView(buffer);
+    const n = view.getUint32(80,true);
+    const pos = new Float32Array(n*9), norm = new Float32Array(n*9);
+    let p=84;
+    for(let i=0;i<n;i++){
+      const nx=view.getFloat32(p,true),ny=view.getFloat32(p+4,true),nz=view.getFloat32(p+8,true); p+=12;
+      for(let v=0;v<3;v++){const b=i*9+v*3; pos[b]=view.getFloat32(p,true); pos[b+1]=view.getFloat32(p+4,true); pos[b+2]=view.getFloat32(p+8,true); norm[b]=nx;norm[b+1]=ny;norm[b+2]=nz; p+=12;} p+=2;
+    }
+    geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    geo.setAttribute('normal',new THREE.BufferAttribute(norm,3));
+  } else {
+    const text=new TextDecoder().decode(bytes), verts=[];
+    const re=/vertex\s+([\d.eE+\-]+)\s+([\d.eE+\-]+)\s+([\d.eE+\-]+)/g;
+    let m; while((m=re.exec(text))!==null) verts.push(+m[1],+m[2],+m[3]);
+    geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(verts),3));
+    geo.computeVertexNormals();
+  }
+  return geo;
+}
+
+function toast(msg,dur=3000){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),dur); }
 </script>
 </body>
 </html>
