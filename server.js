@@ -204,14 +204,15 @@ app.get('/api/export/:did', requireAuth, async (req, res) => {
     await refreshIfNeeded(req);
     const token = req.session.accessToken;
 
-    // Get workspace
-    const docR = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}`,
+    // Get workspace using v6 API
+    const wsR = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/workspaces`,
       { headers: onshapeHeaders(token) });
-    const docName = docR.data.name || did;
-    const wid = docR.data.defaultWorkspace?.id || docR.data.defaultWorkspace;
+    const wid = wsR.data[0]?.id;
+    const docName = wsR.data[0]?.name || did;
+    if (!wid) return res.status(404).json({ error: 'No workspace found' });
 
     // Get elements
-    const elR = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}/w/${wid}/elements`,
+    const elR = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/w/${wid}/elements`,
       { headers: onshapeHeaders(token) });
     const elements = elR.data.filter(e =>
       ['PARTSTUDIO', 'ASSEMBLY', 'DRAWING'].includes(e.elementType));
@@ -277,11 +278,12 @@ app.get('/api/export/:did/progress', requireAuth, async (req, res) => {
     await refreshIfNeeded(req);
     const token = req.session.accessToken;
 
-    const docR2 = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}`,
+    const wsR3 = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/workspaces`,
       { headers: onshapeHeaders(token) });
-    const wid = docR2.data.defaultWorkspace?.id || docR2.data.defaultWorkspace;
+    const wid = wsR3.data[0]?.id;
+    if (!wid) { send({ type: 'error', message: 'No workspace found' }); return res.end(); }
 
-    const elR = await axios.get(`${ONSHAPE_BASE}/api/v10/documents/${did}/w/${wid}/elements`,
+    const elR = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/w/${wid}/elements`,
       { headers: onshapeHeaders(token) });
     const elements = elR.data.filter(e =>
       ['PARTSTUDIO', 'ASSEMBLY', 'DRAWING'].includes(e.elementType));
