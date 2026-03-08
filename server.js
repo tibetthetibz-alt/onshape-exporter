@@ -110,7 +110,7 @@ app.get('/api/user', requireAuth, async (req, res) => {
 app.get('/api/documents', requireAuth, async (req, res) => {
   try {
     await refreshIfNeeded(req);
-    const { q = '', offset = 0, limit = 50 } = req.query;
+    const { q = '', offset = 0, limit = 20 } = req.query;
     console.log('Fetching docs, token exists:', !!req.session.accessToken);
     const params = { sortColumn: 'modifiedAt', sortOrder: 'desc', offset, limit, filter: 0 };
     if (q) params.q = q;
