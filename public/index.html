@@ -1020,27 +1020,43 @@ async function autoPreview(el) {
   }
 }
 
-function showDrawingPreview(eid) {
+async function showDrawingPreview(eid) {
   const wrap = document.getElementById('canvas-wrap');
-  // Remove any existing iframe
   document.getElementById('drawing-iframe')?.remove();
   if (meshObj && scene) { scene.remove(meshObj); meshObj = null; }
   document.getElementById('three-canvas').style.display = 'none';
-  document.getElementById('canvas-ph').style.display = 'none';
+  document.getElementById('canvas-ph').style.display = 'flex';
+  document.getElementById('canvas-ph').querySelector('p').textContent = 'Loading drawing…';
   document.getElementById('preview-toolbar').style.display = 'none';
+  document.getElementById('preview-hint').textContent = 'Loading drawing…';
 
-  const iframe = document.createElement('iframe');
-  iframe.id = 'drawing-iframe';
-  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#fff;';
-  iframe.src = `/api/preview-drawing/${currentDoc.id}/${eid}`;
-  wrap.appendChild(iframe);
+  try {
+    const r = await fetch(`/api/preview-drawing/${currentDoc.id}/${eid}`);
+    if (!r.ok) throw new Error('Failed to load drawing');
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
 
-  document.getElementById('preview-hint').textContent = 'Drawing preview';
-  document.getElementById('preview-footer').textContent = 'PDF drawing — scroll to zoom';
+    document.getElementById('canvas-ph').style.display = 'none';
+    const embed = document.createElement('embed');
+    embed.id = 'drawing-iframe';
+    embed.type = 'application/pdf';
+    embed.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#fff;';
+    embed.src = url;
+    wrap.appendChild(embed);
+
+    document.getElementById('preview-hint').textContent = 'Drawing preview';
+    document.getElementById('preview-footer').textContent = 'PDF drawing';
+  } catch(e) {
+    document.getElementById('canvas-ph').style.display = 'flex';
+    document.getElementById('canvas-ph').querySelector('p').textContent = 'Could not load drawing: ' + e.message;
+    document.getElementById('preview-hint').textContent = 'Preview failed';
+  }
 }
 
 async function show3DPreview(eid) {
-  document.getElementById('drawing-iframe')?.remove();
+  // Clean up drawing embed if present
+  const existing = document.getElementById('drawing-iframe');
+  if (existing) { existing.remove(); }
   document.getElementById('three-canvas').style.display = 'block';
   document.getElementById('canvas-ph').style.display = 'flex';
   document.getElementById('canvas-ph').querySelector('p').textContent = 'Loading 3D preview…';

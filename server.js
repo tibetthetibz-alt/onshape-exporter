@@ -166,8 +166,8 @@ async function startTranslation(token, did, wid, element, format) {
 
   if (elementType === 'PARTSTUDIO') {
     url = `${ONSHAPE_BASE}/api/v10/partstudios/d/${did}/w/${wid}/e/${eid}/translations`;
-    body.resolution = 'FINE';
-    body.unit = 'MILLIMETER';
+    // Only add resolution/unit for STL (other formats reject them)
+    if (format === 'STL') { body.resolution = 'fine'; body.unit = 'millimeter'; }
   } else if (elementType === 'ASSEMBLY') {
     url = `${ONSHAPE_BASE}/api/v10/assemblies/d/${did}/w/${wid}/e/${eid}/translations`;
     // Assemblies don't accept resolution or unit
@@ -236,7 +236,7 @@ app.get('/api/preview/:did/:eid', requireAuth, async (req, res) => {
 
     // resolution/unit only valid for PARTSTUDIO
     const body = { formatName: 'STL', storeInDocument: false };
-    if (el.elementType === 'PARTSTUDIO') { body.resolution = 'COARSE'; body.unit = 'MILLIMETER'; }
+    if (el.elementType === 'PARTSTUDIO') { body.resolution = 'coarse'; body.unit = 'millimeter'; }
     if (el.elementType === 'ASSEMBLY') { body.flattenAssemblies = true; body.yAxisIsUp = false; }
 
     const apiPath = el.elementType === 'PARTSTUDIO' ? 'partstudios' : 'assemblies';
@@ -280,6 +280,8 @@ app.get('/api/preview-drawing/:did/:eid', requireAuth, async (req, res) => {
     if (!externalIds.length) return res.status(500).json({ error: 'No PDF produced' });
     const buf = await downloadExternalData(token, did, externalIds[0]);
     res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.send(buf);
   } catch (e) {
     console.error('Drawing preview error:', e.response?.data || e.message);
