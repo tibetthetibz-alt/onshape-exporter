@@ -2,6 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2300007E'/><path d='M16 6L16 20M10 14L16 20L22 14' stroke='%2301c6f1' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/><rect x='8' y='22' width='16' height='3' rx='1.5' fill='%2301c6f1'/></svg>" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>OnExport</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -424,6 +425,9 @@ input[type="checkbox"] {
   width: 15px; height: 15px; accent-color: var(--c3); cursor: pointer;
 }
 
+.el-card.previewing { border-color: var(--hi) !important; }
+.el-card { cursor: pointer; }
+
 .preview-btn {
   background: rgba(1,198,241,0.08); border: 1px solid rgba(1,198,241,0.2);
   color: var(--hi); font-size: 13px; border-radius: 5px;
@@ -534,9 +538,10 @@ optgroup { color: var(--text3); font-size: 11px; }
             <h2 id="detail-title"></h2>
             <div class="doc-id" id="detail-id"></div>
           </div>
-          <div class="export-bar">
-            <select class="format-select" id="format-select" onchange="updateFormatHint()">
-              <optgroup label="3D Geometry">
+          <div class="export-bar" style="flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap;">3D</span>
+              <select class="format-select" id="format-3d">
                 <option value="STEP">STEP (.step)</option>
                 <option value="STL">STL (.stl)</option>
                 <option value="IGES">IGES (.igs)</option>
@@ -548,8 +553,11 @@ optgroup { color: var(--text3); font-size: 11px; }
                 <option value="GLTF">glTF (.glb)</option>
                 <option value="OBJ">OBJ (.obj)</option>
                 <option value="3MF">3MF (.3mf)</option>
-              </optgroup>
-              <optgroup label="Drawings only">
+              </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap;">DWG</span>
+              <select class="format-select" id="format-dwg">
                 <option value="PDF">PDF (.pdf)</option>
                 <option value="DWG">DWG (.dwg)</option>
                 <option value="DXF">DXF (.dxf)</option>
@@ -558,9 +566,8 @@ optgroup { color: var(--text3); font-size: 11px; }
                 <option value="PNG">PNG (.png)</option>
                 <option value="JPEG">JPEG (.jpg)</option>
                 <option value="TIFF">TIFF (.tif)</option>
-              </optgroup>
-            </select>
-            <span id="format-hint" style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap;"></span>
+              </select>
+            </div>
             <button class="btn btn-primary btn-sm" id="export-btn" onclick="startExport()">Export selected</button>
           </div>
         </div>
@@ -803,12 +810,15 @@ async function selectDoc(did, name) {
       return;
     }
 
+    // Auto-preview the first previewable element
+    const firstPreviewable = els.find(e => ['PARTSTUDIO','ASSEMBLY','DRAWING'].includes(e.elementType));
+    if (firstPreviewable) setTimeout(() => autoPreview(firstPreviewable), 200);
+
     grid.innerHTML = els.map(el => `
-      <div class="el-card selected" id="el-${el.id}">
-        <div class="el-check checked" id="chk-${el.id}" onclick="toggleEl('${el.id}')"></div>
+      <div class="el-card selected" id="el-${el.id}" onclick="autoPreview(${JSON.stringify(el).replace(/"/g,'&quot;')})">
+        <div class="el-check checked" id="chk-${el.id}" onclick="event.stopPropagation();toggleEl('${el.id}')"></div>
         <span class="el-badge badge-${el.elementType}">${el.elementType}</span>
         <span class="el-name">${esc(el.name)}</span>
-        ${['PARTSTUDIO','ASSEMBLY'].includes(el.elementType) ? `<button class="preview-btn" title="Preview 3D" onclick="previewEl('${el.id}')">⬡</button>` : ''}
         <span class="el-status" id="status-${el.id}"><span class="dot waiting"></span><span>waiting</span></span>
       </div>`).join('');
   } catch {
@@ -855,12 +865,20 @@ function updateSelCount() {
 // ══════════════════════════════════════
 // EXPORT
 // ══════════════════════════════════════
+function getFormatFor(elementType) {
+  if (elementType === 'DRAWING') return document.getElementById('format-dwg').value;
+  return document.getElementById('format-3d').value;
+}
+
 function startExport() {
   if (!currentDoc) return;
   if (selectedEls.size === 0) { toast('Select at least one element to export'); return; }
   if (sse) { sse.close(); sse = null; }
 
-  const fmt = document.getElementById('format-select').value;
+  // Pass both formats — server will pick correct one per element
+  const fmt3d = document.getElementById('format-3d').value;
+  const fmtDwg = document.getElementById('format-dwg').value;
+  const fmt = fmt3d; // primary (server decides per element type)
   const ids = Array.from(selectedEls).join(',');
   doneEls = 0;
 
@@ -876,7 +894,7 @@ function startExport() {
     e.innerHTML = '<span class="dot waiting"></span><span>waiting</span>';
   });
 
-  sse = new EventSource(`/api/export/${currentDoc.id}/progress?format=${fmt}&ids=${ids}`);
+  sse = new EventSource(`/api/export/${currentDoc.id}/progress?format=${fmt3d}&fmtDwg=${fmtDwg}&ids=${ids}`);
 
   sse.onmessage = ev => {
     const msg = JSON.parse(ev.data);
@@ -910,9 +928,10 @@ function startExport() {
 }
 
 function triggerDownload() {
-  const fmt = document.getElementById('format-select').value;
+  const fmt3d = document.getElementById('format-3d').value;
+  const fmtDwg = document.getElementById('format-dwg').value;
   const ids = Array.from(selectedEls).join(',');
-  window.location.href = `/api/export/${currentDoc.id}?format=${fmt}&ids=${ids}`;
+  window.location.href = `/api/export/${currentDoc.id}?format=${fmt3d}&fmtDwg=${fmtDwg}&ids=${ids}`;
 }
 
 function setProgress(pct, label, detail) {
@@ -981,11 +1000,54 @@ function fitView(){ if(!meshObj||!orb)return; const b=new THREE.Box3().setFromOb
 function toggleWire(){ wireMode=!wireMode; meshObj?.traverse(c=>{ if(c.material) c.material.wireframe=wireMode; }); }
 function clearPreview(){ if(meshObj&&scene){scene.remove(meshObj);meshObj=null;} document.getElementById('canvas-ph').style.display='flex'; document.getElementById('preview-toolbar').style.display='none'; document.getElementById('preview-footer').textContent='No model loaded'; document.getElementById('preview-hint').textContent='Export STL to preview'; }
 
-async function previewEl(eid) {
-  document.getElementById('preview-hint').textContent = 'Loading…';
-  document.getElementById('canvas-ph').style.display = 'flex';
-  document.getElementById('canvas-ph').querySelector('p').textContent = 'Generating preview…';
+let lastPreviewEid = null;
+
+async function autoPreview(el) {
+  if (!currentDoc || !el) return;
+  const eid = el.id || el;
+  if (eid === lastPreviewEid) return;
+  lastPreviewEid = eid;
+
+  // Highlight selected card
+  document.querySelectorAll('.el-card').forEach(c => c.classList.remove('previewing'));
+  document.getElementById(`el-${eid}`)?.classList.add('previewing');
+
+  const elType = el.elementType;
+  if (elType === 'DRAWING') {
+    showDrawingPreview(eid);
+  } else if (['PARTSTUDIO','ASSEMBLY'].includes(elType)) {
+    show3DPreview(eid);
+  }
+}
+
+function showDrawingPreview(eid) {
+  const wrap = document.getElementById('canvas-wrap');
+  // Remove any existing iframe
+  document.getElementById('drawing-iframe')?.remove();
+  if (meshObj && scene) { scene.remove(meshObj); meshObj = null; }
+  document.getElementById('three-canvas').style.display = 'none';
+  document.getElementById('canvas-ph').style.display = 'none';
   document.getElementById('preview-toolbar').style.display = 'none';
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'drawing-iframe';
+  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#fff;';
+  iframe.src = `/api/preview-drawing/${currentDoc.id}/${eid}`;
+  wrap.appendChild(iframe);
+
+  document.getElementById('preview-hint').textContent = 'Drawing preview';
+  document.getElementById('preview-footer').textContent = 'PDF drawing — scroll to zoom';
+}
+
+async function show3DPreview(eid) {
+  document.getElementById('drawing-iframe')?.remove();
+  document.getElementById('three-canvas').style.display = 'block';
+  document.getElementById('canvas-ph').style.display = 'flex';
+  document.getElementById('canvas-ph').querySelector('p').textContent = 'Loading 3D preview…';
+  document.getElementById('preview-toolbar').style.display = 'none';
+  document.getElementById('preview-hint').textContent = 'Loading…';
+  if (meshObj && scene) { scene.remove(meshObj); meshObj = null; }
+
   try {
     const r = await fetch(`/api/preview/${currentDoc.id}/${eid}`);
     if (!r.ok) {
@@ -995,11 +1057,12 @@ async function previewEl(eid) {
     const buf = await r.arrayBuffer();
     loadSTL(buf);
   } catch(e) {
-    toast('Preview failed: ' + e.message);
     document.getElementById('preview-hint').textContent = 'Preview failed';
-    document.getElementById('canvas-ph').querySelector('p').textContent = 'Preview failed. Try again.';
+    document.getElementById('canvas-ph').querySelector('p').textContent = e.message;
   }
 }
+
+async function previewEl(eid) { await autoPreview({ id: eid, elementType: 'PARTSTUDIO' }); }
 
 function extractSTL(buffer) {
   const b = new Uint8Array(buffer); let off=0;

@@ -161,25 +161,23 @@ async function startTranslation(token, did, wid, element, format) {
   const { id: eid, elementType } = element;
   let url;
 
-  // Use storeInDocument:false so no copies are created in the document
-  const body = {
-    formatName: format,
-    storeInDocument: false,
-    resolution: 'FINE',
-    unit: 'MILLIMETER',
-  };
+  // Base body — resolution/unit only valid for PARTSTUDIO
+  const body = { formatName: format, storeInDocument: false };
 
   if (elementType === 'PARTSTUDIO') {
     url = `${ONSHAPE_BASE}/api/v10/partstudios/d/${did}/w/${wid}/e/${eid}/translations`;
+    body.resolution = 'FINE';
+    body.unit = 'MILLIMETER';
   } else if (elementType === 'ASSEMBLY') {
     url = `${ONSHAPE_BASE}/api/v10/assemblies/d/${did}/w/${wid}/e/${eid}/translations`;
-    if (format === 'STL') {
-      body.flattenAssemblies = true;
-      body.yAxisIsUp = false;
-    }
+    // Assemblies don't accept resolution or unit
+    if (format === 'STL') { body.flattenAssemblies = true; body.yAxisIsUp = false; }
+    // Assemblies only support STEP/IGES/PARASOLID/ACIS/GLTF/COLLADA/STL/3MF
+    const assemblyFmts = ['STEP','IGES','PARASOLID','ACIS','GLTF','COLLADA','STL','3MF','OBJ','JT'];
+    if (!assemblyFmts.includes(format)) body.formatName = 'STEP';
   } else if (elementType === 'DRAWING') {
     url = `${ONSHAPE_BASE}/api/v10/drawings/d/${did}/w/${wid}/e/${eid}/translations`;
-    // Use requested format if it's a drawing format, else default to PDF
+    // Drawings don't accept resolution or unit
     if (!DRAWING_FORMATS.includes(format)) body.formatName = 'PDF';
   } else {
     return null;
@@ -236,7 +234,9 @@ app.get('/api/preview/:did/:eid', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Preview only available for Part Studios and Assemblies' });
     }
 
-    const body = { formatName: 'STL', storeInDocument: false, resolution: 'COARSE', unit: 'MILLIMETER' };
+    // resolution/unit only valid for PARTSTUDIO
+    const body = { formatName: 'STL', storeInDocument: false };
+    if (el.elementType === 'PARTSTUDIO') { body.resolution = 'COARSE'; body.unit = 'MILLIMETER'; }
     if (el.elementType === 'ASSEMBLY') { body.flattenAssemblies = true; body.yAxisIsUp = false; }
 
     const apiPath = el.elementType === 'PARTSTUDIO' ? 'partstudios' : 'assemblies';
@@ -256,6 +256,33 @@ app.get('/api/preview/:did/:eid', requireAuth, async (req, res) => {
     res.send(buf);
   } catch (e) {
     console.error('Preview error:', e.response?.data || e.message);
+    res.status(500).json({ error: e.response?.data?.message || e.message });
+  }
+});
+
+// Drawing preview — return the drawing as PDF for inline display
+app.get('/api/preview-drawing/:did/:eid', requireAuth, async (req, res) => {
+  const { did, eid } = req.params;
+  try {
+    await refreshIfNeeded(req);
+    const token = req.session.accessToken;
+    const wsR = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/workspaces`, { headers: onshapeHeaders(token) });
+    const wid = wsR.data[0]?.id;
+    if (!wid) return res.status(404).json({ error: 'No workspace' });
+    // Translate to PDF
+    const tR = await axios.post(
+      `${ONSHAPE_BASE}/api/v10/drawings/d/${did}/w/${wid}/e/${eid}/translations`,
+      { formatName: 'PDF', storeInDocument: false },
+      { headers: { ...onshapeHeaders(token), 'Content-Type': 'application/json;charset=UTF-8' } }
+    );
+    const done = await pollTranslation(token, tR.data.id, 60000);
+    const externalIds = done.resultExternalDataIds || [];
+    if (!externalIds.length) return res.status(500).json({ error: 'No PDF produced' });
+    const buf = await downloadExternalData(token, did, externalIds[0]);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.send(buf);
+  } catch (e) {
+    console.error('Drawing preview error:', e.response?.data || e.message);
     res.status(500).json({ error: e.response?.data?.message || e.message });
   }
 });
@@ -280,6 +307,7 @@ app.get('/api/export/:did', requireAuth, async (req, res) => {
     const elR = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/w/${wid}/elements`,
       { headers: onshapeHeaders(token) });
     const selectedIds = req.query.ids ? req.query.ids.split(',') : null;
+    const fmtDwg = (req.query.fmtDwg || 'PDF').toUpperCase();
     const elements = elR.data.filter(e =>
       ['PARTSTUDIO', 'ASSEMBLY', 'DRAWING'].includes(e.elementType) &&
       (!selectedIds || selectedIds.includes(e.id)));
@@ -297,8 +325,10 @@ app.get('/api/export/:did', requireAuth, async (req, res) => {
     archive.pipe(res);
 
     for (const el of elements) {
+      // Use drawing format for drawings, 3D format for everything else
+      const elFormat = el.elementType === 'DRAWING' ? fmtDwg : format;
       try {
-        const translation = await startTranslation(token, did, wid, el, format);
+        const translation = await startTranslation(token, did, wid, el, elFormat);
         if (!translation) continue;
 
         const done = await pollTranslation(token, translation.id);
@@ -309,7 +339,7 @@ app.get('/api/export/:did', requireAuth, async (req, res) => {
           elementIds: done.resultElementIds
         }));
         const externalIds = done.resultExternalDataIds || [];
-        const ext = getExtension(format);
+        const ext = getExtension(elFormat);
         const safeName = el.name.replace(/[^a-zA-Z0-9_\- ]/g, '_');
 
         if (externalIds.length > 0) {
@@ -361,6 +391,7 @@ app.get('/api/export/:did/progress', requireAuth, async (req, res) => {
     const elR = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/w/${wid}/elements`,
       { headers: onshapeHeaders(token) });
     const selectedIds2 = req.query.ids ? req.query.ids.split(',') : null;
+    const fmtDwg2 = (req.query.fmtDwg || 'PDF').toUpperCase();
     const elements = elR.data.filter(e =>
       ['PARTSTUDIO', 'ASSEMBLY', 'DRAWING'].includes(e.elementType) &&
       (!selectedIds2 || selectedIds2.includes(e.id)));
@@ -370,9 +401,10 @@ app.get('/api/export/:did/progress', requireAuth, async (req, res) => {
     const results = [];
     for (let i = 0; i < elements.length; i++) {
       const el = elements[i];
+      const elFormat2 = el.elementType === 'DRAWING' ? fmtDwg2 : format;
       send({ type: 'progress', index: i, name: el.name, elementType: el.elementType, status: 'translating' });
       try {
-        const translation = await startTranslation(token, did, wid, el, format);
+        const translation = await startTranslation(token, did, wid, el, elFormat2);
         if (!translation) {
           send({ type: 'progress', index: i, name: el.name, status: 'skipped' });
           continue;
