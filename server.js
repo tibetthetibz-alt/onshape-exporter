@@ -145,32 +145,44 @@ app.get('/api/documents/:did/elements', requireAuth, async (req, res) => {
   }
 });
 
+// Formats supported per element type
+const DRAWING_FORMATS = ['PDF','DWG','DXF','DWT','SVG','PNG','JPEG','TIFF'];
+const PART_FORMATS    = ['STEP','STL','IGES','PARASOLID','ACIS','SOLIDWORKS','JT','COLLADA','GLTF','OBJ','3MF'];
+
+function getExtension(fmt) {
+  const map = { STEP:'step', STL:'stl', IGES:'igs', PARASOLID:'x_t', ACIS:'sat',
+    SOLIDWORKS:'sldprt', JT:'jt', COLLADA:'dae', GLTF:'glb', OBJ:'obj', '3MF':'3mf',
+    PDF:'pdf', DWG:'dwg', DXF:'dxf', DWT:'dwt', SVG:'svg', PNG:'png', JPEG:'jpg', TIFF:'tif' };
+  return map[fmt] || fmt.toLowerCase();
+}
+
 // Initiate a translation (export) for one element
 async function startTranslation(token, did, wid, element, format) {
   const { id: eid, elementType } = element;
   let url;
+
+  // Use storeInDocument:false so no copies are created in the document
   const body = {
     formatName: format,
-    storeInDocument: true,
+    storeInDocument: false,
     resolution: 'FINE',
     unit: 'MILLIMETER',
-    destinationName: 'export_temp',
   };
 
   if (elementType === 'PARTSTUDIO') {
     url = `${ONSHAPE_BASE}/api/v10/partstudios/d/${did}/w/${wid}/e/${eid}/translations`;
   } else if (elementType === 'ASSEMBLY') {
     url = `${ONSHAPE_BASE}/api/v10/assemblies/d/${did}/w/${wid}/e/${eid}/translations`;
-    // Assemblies need flattenAssemblies for STL
     if (format === 'STL') {
       body.flattenAssemblies = true;
       body.yAxisIsUp = false;
     }
   } else if (elementType === 'DRAWING') {
     url = `${ONSHAPE_BASE}/api/v10/drawings/d/${did}/w/${wid}/e/${eid}/translations`;
-    body.formatName = 'PDF'; // override for drawings
+    // Use requested format if it's a drawing format, else default to PDF
+    if (!DRAWING_FORMATS.includes(format)) body.formatName = 'PDF';
   } else {
-    return null; // skip blob / other types
+    return null;
   }
 
   const r = await axios.post(url, body, {
@@ -200,6 +212,53 @@ async function downloadExternalData(token, did, externalDataId) {
   );
   return Buffer.from(r.data);
 }
+
+// On-demand STL preview — fetches a single element as STL without storing in doc
+app.get('/api/preview/:did/:eid', requireAuth, async (req, res) => {
+  const { did, eid } = req.params;
+  try {
+    await refreshIfNeeded(req);
+    const token = req.session.accessToken;
+
+    const wsR = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/workspaces`,
+      { headers: onshapeHeaders(token) });
+    const wid = wsR.data[0]?.id;
+    if (!wid) return res.status(404).json({ error: 'No workspace' });
+
+    // Find the element type
+    const elR = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/w/${wid}/elements`,
+      { headers: onshapeHeaders(token) });
+    const el = elR.data.find(e => e.id === eid);
+    if (!el) return res.status(404).json({ error: 'Element not found' });
+
+    // Only PARTSTUDIO and ASSEMBLY support STL preview
+    if (!['PARTSTUDIO','ASSEMBLY'].includes(el.elementType)) {
+      return res.status(400).json({ error: 'Preview only available for Part Studios and Assemblies' });
+    }
+
+    const body = { formatName: 'STL', storeInDocument: false, resolution: 'COARSE', unit: 'MILLIMETER' };
+    if (el.elementType === 'ASSEMBLY') { body.flattenAssemblies = true; body.yAxisIsUp = false; }
+
+    const apiPath = el.elementType === 'PARTSTUDIO' ? 'partstudios' : 'assemblies';
+    const tR = await axios.post(
+      `${ONSHAPE_BASE}/api/v10/${apiPath}/d/${did}/w/${wid}/e/${eid}/translations`,
+      body,
+      { headers: { ...onshapeHeaders(token), 'Content-Type': 'application/json;charset=UTF-8' } }
+    );
+
+    const done = await pollTranslation(token, tR.data.id, 60000);
+    const externalIds = done.resultExternalDataIds || [];
+    if (!externalIds.length) return res.status(500).json({ error: 'No STL produced' });
+
+    const buf = await downloadExternalData(token, did, externalIds[0]);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${el.name}.stl"`);
+    res.send(buf);
+  } catch (e) {
+    console.error('Preview error:', e.response?.data || e.message);
+    res.status(500).json({ error: e.response?.data?.message || e.message });
+  }
+});
 
 // Export all elements in a document as a ZIP
 app.get('/api/export/:did', requireAuth, async (req, res) => {
@@ -250,9 +309,7 @@ app.get('/api/export/:did', requireAuth, async (req, res) => {
           elementIds: done.resultElementIds
         }));
         const externalIds = done.resultExternalDataIds || [];
-        const ext = format === 'STEP' ? 'step' :
-                    format === 'STL'  ? 'stl'  :
-                    format === 'PDF'  ? 'pdf'  : format.toLowerCase();
+        const ext = getExtension(format);
         const safeName = el.name.replace(/[^a-zA-Z0-9_\- ]/g, '_');
 
         if (externalIds.length > 0) {
@@ -261,16 +318,6 @@ app.get('/api/export/:did', requireAuth, async (req, res) => {
             const suffix = externalIds.length > 1 ? `_${i + 1}` : '';
             archive.append(buf, { name: `${safeName}${suffix}.${ext}` });
           }
-        } else if (done.resultElementIds && done.resultElementIds.length > 0) {
-          // storeInDocument=true: download from blob element
-          const resultDid = done.resultDocumentId || did;
-          const resultWid = done.resultWorkspaceId || wid;
-          const resultEid = done.resultElementIds[0];
-          const blobR = await axios.get(
-            `${ONSHAPE_BASE}/api/v6/blobelements/d/${resultDid}/w/${resultWid}/e/${resultEid}`,
-            { headers: onshapeHeaders(token), responseType: 'arraybuffer' }
-          );
-          archive.append(Buffer.from(blobR.data), { name: `${safeName}.${ext}` });
         } else {
           throw new Error('No result data from translation');
         }

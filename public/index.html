@@ -424,6 +424,16 @@ input[type="checkbox"] {
   width: 15px; height: 15px; accent-color: var(--c3); cursor: pointer;
 }
 
+.preview-btn {
+  background: rgba(1,198,241,0.08); border: 1px solid rgba(1,198,241,0.2);
+  color: var(--hi); font-size: 13px; border-radius: 5px;
+  padding: 2px 8px; cursor: pointer; transition: all var(--tr);
+  font-family: 'DM Mono', monospace; flex-shrink: 0;
+}
+.preview-btn:hover { background: rgba(1,198,241,0.18); }
+
+optgroup { color: var(--text3); font-size: 11px; }
+
 @media (max-width: 1050px) {
   .workspace { grid-template-columns: 240px 1fr; }
   .preview-panel { display: none; }
@@ -525,11 +535,32 @@ input[type="checkbox"] {
             <div class="doc-id" id="detail-id"></div>
           </div>
           <div class="export-bar">
-            <select class="format-select" id="format-select">
-              <option value="STEP">STEP (.step)</option>
-              <option value="STL">STL (.stl)</option>
-              <option value="IGES">IGES (.igs)</option>
+            <select class="format-select" id="format-select" onchange="updateFormatHint()">
+              <optgroup label="3D Geometry">
+                <option value="STEP">STEP (.step)</option>
+                <option value="STL">STL (.stl)</option>
+                <option value="IGES">IGES (.igs)</option>
+                <option value="PARASOLID">Parasolid (.x_t)</option>
+                <option value="ACIS">ACIS (.sat)</option>
+                <option value="SOLIDWORKS">SolidWorks (.sldprt)</option>
+                <option value="JT">JT (.jt)</option>
+                <option value="COLLADA">COLLADA (.dae)</option>
+                <option value="GLTF">glTF (.glb)</option>
+                <option value="OBJ">OBJ (.obj)</option>
+                <option value="3MF">3MF (.3mf)</option>
+              </optgroup>
+              <optgroup label="Drawings only">
+                <option value="PDF">PDF (.pdf)</option>
+                <option value="DWG">DWG (.dwg)</option>
+                <option value="DXF">DXF (.dxf)</option>
+                <option value="DWT">DWT (.dwt)</option>
+                <option value="SVG">SVG (.svg)</option>
+                <option value="PNG">PNG (.png)</option>
+                <option value="JPEG">JPEG (.jpg)</option>
+                <option value="TIFF">TIFF (.tif)</option>
+              </optgroup>
             </select>
+            <span id="format-hint" style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap;"></span>
             <button class="btn btn-primary btn-sm" id="export-btn" onclick="startExport()">Export selected</button>
           </div>
         </div>
@@ -776,7 +807,8 @@ async function selectDoc(did, name) {
       <div class="el-card selected" id="el-${el.id}">
         <div class="el-check checked" id="chk-${el.id}" onclick="toggleEl('${el.id}')"></div>
         <span class="el-badge badge-${el.elementType}">${el.elementType}</span>
-        <span class="el-name" onclick="previewEl('${el.id}')">${esc(el.name)}</span>
+        <span class="el-name">${esc(el.name)}</span>
+        ${['PARTSTUDIO','ASSEMBLY'].includes(el.elementType) ? `<button class="preview-btn" title="Preview 3D" onclick="previewEl('${el.id}')">⬡</button>` : ''}
         <span class="el-status" id="status-${el.id}"><span class="dot waiting"></span><span>waiting</span></span>
       </div>`).join('');
   } catch {
@@ -950,19 +982,23 @@ function toggleWire(){ wireMode=!wireMode; meshObj?.traverse(c=>{ if(c.material)
 function clearPreview(){ if(meshObj&&scene){scene.remove(meshObj);meshObj=null;} document.getElementById('canvas-ph').style.display='flex'; document.getElementById('preview-toolbar').style.display='none'; document.getElementById('preview-footer').textContent='No model loaded'; document.getElementById('preview-hint').textContent='Export STL to preview'; }
 
 async function previewEl(eid) {
-  const fmt = document.getElementById('format-select').value;
-  if (fmt !== 'STL') { toast('Switch to STL for 3D preview'); return; }
-  const statusEl = document.getElementById(`status-${eid}`);
-  if (!statusEl?.querySelector('.done')) { toast('Export first, then click a part to preview'); return; }
   document.getElementById('preview-hint').textContent = 'Loading…';
+  document.getElementById('canvas-ph').style.display = 'flex';
+  document.getElementById('canvas-ph').querySelector('p').textContent = 'Generating preview…';
+  document.getElementById('preview-toolbar').style.display = 'none';
   try {
-    const r = await fetch(`/api/export/${currentDoc.id}?format=STL&ids=${eid}`);
-    if (!r.ok) throw new Error();
+    const r = await fetch(`/api/preview/${currentDoc.id}/${eid}`);
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.error || 'Preview failed');
+    }
     const buf = await r.arrayBuffer();
-    const stl = extractSTL(buf);
-    if (!stl) { toast('Could not extract STL'); document.getElementById('preview-hint').textContent='Failed'; return; }
-    loadSTL(stl);
-  } catch { toast('Preview failed'); document.getElementById('preview-hint').textContent='Failed'; }
+    loadSTL(buf);
+  } catch(e) {
+    toast('Preview failed: ' + e.message);
+    document.getElementById('preview-hint').textContent = 'Preview failed';
+    document.getElementById('canvas-ph').querySelector('p').textContent = 'Preview failed. Try again.';
+  }
 }
 
 function extractSTL(buffer) {
@@ -979,6 +1015,7 @@ function extractSTL(buffer) {
 }
 
 function loadSTL(buffer) {
+  // buffer is raw STL (not a ZIP) from /api/preview
   const geo = parseSTL(buffer); if(!geo){toast('Cannot parse STL');return;}
   if(meshObj) scene.remove(meshObj);
   meshObj = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color:0x27DEC4, specular:0x112222, shininess:60, side:THREE.DoubleSide }));
@@ -1010,6 +1047,22 @@ function parseSTL(buffer) {
     geo.setAttribute('normal',new THREE.BufferAttribute(norm,3));
   }
   return geo;
+}
+
+const DRAWING_FMTS = ['PDF','DWG','DXF','DWT','SVG','PNG','JPEG','TIFF'];
+const PART_FMTS = ['STEP','STL','IGES','PARASOLID','ACIS','SOLIDWORKS','JT','COLLADA','GLTF','OBJ','3MF'];
+
+function updateFormatHint() {
+  const fmt = document.getElementById('format-select')?.value;
+  const hint = document.getElementById('format-hint');
+  if (!hint || !fmt) return;
+  if (DRAWING_FMTS.includes(fmt)) {
+    hint.textContent = 'Drawings only — 3D elements skipped';
+    hint.style.color = 'var(--yellow)';
+  } else {
+    hint.textContent = fmt === 'STL' ? '3D preview available' : '';
+    hint.style.color = 'var(--text3)';
+  }
 }
 
 function toast(msg,dur=3000){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),dur); }
