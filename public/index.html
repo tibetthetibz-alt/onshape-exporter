@@ -643,7 +643,8 @@ body {
 <script>
 // ── THEME ──────────────────────────────────────────────
 let theme = localStorage.getItem('theme') || 'dark';
-applyTheme(theme);
+// Apply theme attribute immediately (no DOM needed)
+document.documentElement.setAttribute('data-theme', theme);
 
 function applyTheme(t) {
   theme = t;
@@ -658,7 +659,7 @@ function applyTheme(t) {
   if (ti) ti.textContent = icon;
   if (tl) tl.textContent = label;
   if (ati) ati.textContent = icon;
-  if (typeof renderer !== 'undefined' && renderer) {
+  if (renderer) {
     const bg = isDark ? 0x0f0f11 : 0xf5f5f7;
     renderer.setClearColor(bg, 1);
     scene && (scene.background = new THREE.Color(bg));
@@ -692,6 +693,7 @@ async function loadUser() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  applyTheme(theme);
   init();
   let t;
   const si = document.getElementById('search-input');
