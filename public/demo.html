@@ -7,7 +7,22 @@
 <link rel="icon" type="image/png" href="/logo.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
+let theme = 'dark';
+function toggleTheme() {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
+  document.getElementById('nav-logo').src = theme === 'dark' ? '/logo-dark.png' : '/logo-light.png';
+  if (renderer) {
+    const bg = theme === 'dark' ? 0x0b0b14 : 0xf4f4fb;
+    renderer.setClearColor(bg);
+    if (scene) scene.background = new THREE.Color(bg);
+    needsRender = true;
+  }
+}
+
+</script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -22,6 +37,12 @@
   --text: #f0f0ff; --text2: #9090b8; --text3: #50507a;
   --hi: var(--c2);
 }
+[data-theme="light"] {
+  --bg: #ffffff; --bg2: #f4f4fb; --surface: #ffffff;
+  --surface2: #ececf8; --border: #dcdcf0;
+  --text: #0a0a1a; --text2: #44446a; --text3: #9999c0;
+  --hi: var(--c2);
+}
 
 html, body { height: 100%; }
 body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; overflow: hidden; }
@@ -33,7 +54,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-seri
   background: var(--bg2); flex-shrink: 0; position: relative; z-index: 50;
 }
 .logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; color: var(--text); text-decoration: none; }
-.logo-icon { width: 26px; height: 26px; border-radius: 6px; background: #fff; overflow: hidden; flex-shrink: 0; }
+.logo-icon { width: 26px; height: 26px; border-radius: 6px; background: transparent; overflow: hidden; flex-shrink: 0; }
 .logo-icon img { width: 100%; height: 100%; object-fit: contain; }
 .demo-badge {
   padding: 3px 10px; border-radius: 20px;
@@ -181,11 +202,12 @@ canvas { display: block; width: 100%; height: 100%; }
   <!-- NAV -->
   <nav class="nav">
     <a href="/" class="logo">
-      <div class="logo-icon"><img src="/logo.png" alt=""/></div>
+      <div class="logo-icon"><img id="nav-logo" src="/logo-dark.png" alt=""/></div>
       OnExport
     </a>
     <span class="demo-badge">Demo Mode</span>
     <div class="nav-right">
+      <button onclick="toggleTheme()" id="theme-btn" style="background:none;border:1px solid var(--border);color:var(--text2);padding:5px 10px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all 0.15s;">☀ Light</button>
       <div class="user-chip">
         <div class="avatar">T</div>
         Tibet Asikoglu
@@ -328,11 +350,11 @@ canvas { display: block; width: 100%; height: 100%; }
 <!-- DEMO CONTROLS -->
 <div class="demo-controls">
   <span style="font-family:'DM Mono',monospace;">Try it:</span>
-  <button class="demo-btn" onclick="previewModel('bracket')">🔷 3D Part</button>
-  <button class="demo-btn" onclick="previewModel('assembly')">⚙️ Assembly</button>
-  <button class="demo-btn" onclick="previewDrawing()">📐 Drawing</button>
+  <button class="demo-btn" onclick="previewModel('bracket')">3D Part</button>
+  <button class="demo-btn" onclick="previewModel('assembly')">Assembly</button>
+  <button class="demo-btn" onclick="previewDrawing()">Drawing</button>
   <div class="demo-sep"></div>
-  <button class="demo-btn primary" onclick="runExport()">▶ Simulate Export</button>
+  <button class="demo-btn primary" onclick="runExport()">Simulate Export</button>
   <div class="demo-sep"></div>
   <a href="/" style="color:var(--text2);font-size:12px;font-family:'DM Mono',monospace;text-decoration:none;">← Home</a>
 </div>
@@ -344,7 +366,6 @@ const DOCS = [
   { id: 'b', name: 'Robot Arm Frame',         age: '1d ago' },
   { id: 'c', name: 'Enclosure v2',            age: '3d ago' },
   { id: 'd', name: 'Bracket Collection',      age: '5d ago' },
-  { id: 'e', name: 'DT NEA investigate Y11',  age: '11d ago' },
   { id: 'f', name: 'Final design',            age: '5d ago' },
 ];
 
@@ -644,6 +665,21 @@ initThree();
 setTimeout(() => {
   previewModel('bracket');
 }, 600);
+
+let theme = 'dark';
+function toggleTheme() {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
+  document.getElementById('nav-logo').src = theme === 'dark' ? '/logo-dark.png' : '/logo-light.png';
+  if (renderer) {
+    const bg = theme === 'dark' ? 0x0b0b14 : 0xf4f4fb;
+    renderer.setClearColor(bg);
+    if (scene) scene.background = new THREE.Color(bg);
+    needsRender = true;
+  }
+}
+
 </script>
 </body>
 </html>
