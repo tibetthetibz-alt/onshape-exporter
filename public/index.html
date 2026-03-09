@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2300007E'/><path d='M16 6L16 20M10 14L16 20L22 14' stroke='%2301c6f1' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/><rect x='8' y='22' width='16' height='3' rx='1.5' fill='%2301c6f1'/></svg>" />
+<link rel="icon" type="image/jpeg" href="/logo.jpg" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>OnExport</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -112,10 +112,10 @@ body {
 
 .logo-icon {
   width: 30px; height: 30px; border-radius: 8px;
-  background: linear-gradient(135deg, var(--c1), var(--c2));
+  background: #fff;
   display: flex; align-items: center; justify-content: center;
+  overflow: hidden; flex-shrink: 0;
 }
-.logo-icon svg { width: 15px; height: 15px; }
 
 .nav-right { display: flex; align-items: center; gap: 10px; }
 
@@ -455,13 +455,7 @@ optgroup { color: var(--text3); font-size: 11px; }
 <div id="landing-page">
   <nav class="nav">
     <a href="#" class="logo">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-      </div>
+      <img src="/logo.jpg" class="logo-icon" alt="OnExport" style="object-fit:cover;" />
       OnExport
     </a>
     <div class="nav-right">
@@ -484,13 +478,7 @@ optgroup { color: var(--text3); font-size: 11px; }
 <div id="app-page">
   <nav class="app-nav">
     <a href="#" class="logo">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-      </div>
+      <img src="/logo.jpg" class="logo-icon" alt="OnExport" style="object-fit:cover;" />
       OnExport
     </a>
     <div class="nav-right-app">
