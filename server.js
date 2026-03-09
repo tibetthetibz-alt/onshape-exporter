@@ -124,6 +124,16 @@ app.get('/api/documents', requireAuth, async (req, res) => {
   }
 });
 
+// Normalise element types — Onshape returns drawings as APPLICATION type
+function normaliseElements(elements) {
+  return elements.map(e => {
+    if (e.elementType === 'APPLICATION') {
+      return { ...e, elementType: 'DRAWING' };
+    }
+    return e;
+  });
+}
+
 // Get elements in a document
 app.get('/api/documents/:did/elements', requireAuth, async (req, res) => {
   try {
@@ -138,16 +148,8 @@ app.get('/api/documents/:did/elements', requireAuth, async (req, res) => {
     if (!wid) return res.status(404).json({ error: 'No workspace found' });
     const elR = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/w/${wid}/elements`,
       { headers: onshapeHeaders(req.session.accessToken) });
-    // Log element types to help debug
     console.log('Element types:', elR.data.map(e => e.elementType + ':' + e.name).join(', '));
-    // Onshape sometimes returns drawings as type APPLICATION — normalise it
-    const elements = elR.data.map(e => {
-      if (e.elementType === 'APPLICATION' && e.dataType && e.dataType.includes('drawing')) {
-        return { ...e, elementType: 'DRAWING' };
-      }
-      return e;
-    });
-    res.json({ elements, workspaceId: wid });
+    res.json({ elements: normaliseElements(elR.data), workspaceId: wid });
   } catch (e) {
     console.error('Elements error:', e.response?.data || e.message);
     res.status(500).json({ error: e.response?.data || e.message });
@@ -173,28 +175,31 @@ async function startTranslation(token, did, wid, element, format) {
   // Base body — resolution/unit only valid for PARTSTUDIO
   const body = { formatName: format, storeInDocument: false };
 
-  // Formats that NEVER accept resolution or unit
-  const NO_RES_FORMATS = ['GLTF','OBJ','3MF','COLLADA','JT','SOLIDWORKS','ACIS','PARASOLID'];
+  // GLTF/OBJ/3MF use tessellation params. STL uses resolution+unit. Others use neither.
+  const TESSELLATION_FORMATS = ['GLTF','OBJ','3MF'];
 
   if (elementType === 'PARTSTUDIO') {
     url = `${ONSHAPE_BASE}/api/v10/partstudios/d/${did}/w/${wid}/e/${eid}/translations`;
-    // Only STL/STEP/IGES accept resolution+unit; others reject them
-    if (!NO_RES_FORMATS.includes(format)) {
+    if (format === 'STL') {
       body.resolution = 'fine';
       body.unit = 'millimeter';
+    } else if (TESSELLATION_FORMATS.includes(format)) {
+      body.angularTolerance = 0.1;
+      body.distanceTolerance = 0.00012;
+      body.maximumChordLength = 10;
     }
   } else if (elementType === 'ASSEMBLY') {
     url = `${ONSHAPE_BASE}/api/v10/assemblies/d/${did}/w/${wid}/e/${eid}/translations`;
-    // Assemblies NEVER accept resolution or unit — remove them regardless of format
-    delete body.resolution;
-    delete body.unit;
-    if (format === 'STL') { body.flattenAssemblies = true; body.yAxisIsUp = false; }
-    // Assemblies only support STEP/IGES/PARASOLID/ACIS/GLTF/COLLADA/STL/3MF
-    const assemblyFmts = ['STEP','IGES','PARASOLID','ACIS','GLTF','COLLADA','STL','3MF','OBJ','JT'];
-    if (!assemblyFmts.includes(format)) body.formatName = 'STEP';
+    if (format === 'STL') {
+      body.flattenAssemblies = true;
+      body.yAxisIsUp = false;
+    } else if (TESSELLATION_FORMATS.includes(format)) {
+      body.angularTolerance = 0.1;
+      body.distanceTolerance = 0.00012;
+      body.maximumChordLength = 10;
+    }
   } else if (elementType === 'DRAWING') {
     url = `${ONSHAPE_BASE}/api/v10/drawings/d/${did}/w/${wid}/e/${eid}/translations`;
-    // Drawings don't accept resolution or unit
     if (!DRAWING_FORMATS.includes(format)) body.formatName = 'PDF';
   } else {
     return null;
@@ -327,7 +332,7 @@ app.get('/api/export/:did', requireAuth, async (req, res) => {
       { headers: onshapeHeaders(token) });
     const selectedIds = req.query.ids ? req.query.ids.split(',') : null;
     const fmtDwg = (req.query.fmtDwg || 'PDF').toUpperCase();
-    const elements = elR.data.filter(e =>
+    const elements = normaliseElements(elR.data).filter(e =>
       ['PARTSTUDIO', 'ASSEMBLY', 'DRAWING'].includes(e.elementType) &&
       (!selectedIds || selectedIds.includes(e.id)));
 
@@ -420,7 +425,7 @@ app.get('/api/export/:did/progress', requireAuth, async (req, res) => {
       { headers: onshapeHeaders(token) });
     const selectedIds2 = req.query.ids ? req.query.ids.split(',') : null;
     const fmtDwg2 = (req.query.fmtDwg || 'PDF').toUpperCase();
-    const elements = elR.data.filter(e =>
+    const elements = normaliseElements(elR.data).filter(e =>
       ['PARTSTUDIO', 'ASSEMBLY', 'DRAWING'].includes(e.elementType) &&
       (!selectedIds2 || selectedIds2.includes(e.id)));
 
