@@ -121,6 +121,11 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;transi
 .drawing-overlay.show{display:flex;}
 .drawing-overlay iframe{width:100%;height:100%;border:none;}
 
+.dl-card{background:var(--surface);border:1px solid rgba(70,237,165,0.3);border-radius:10px;padding:14px;margin-bottom:14px;display:none;align-items:center;justify-content:space-between;gap:12px;}
+.dl-card.show{display:flex;}
+.dl-card h3{font-size:14px;font-weight:600;color:var(--c5);}
+.dl-card p{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:3px;}
+
 /* ── WALKTHROUGH ── */
 .wt-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;}
 .wt-overlay.show{display:flex;}
@@ -204,7 +209,7 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;transi
         <div>
           <h2>Wood Working Project</h2>
         </div>
-        <div class="export-bar">
+        <div class="export-bar" id="export-bar">
           <span class="label-sm">3D</span>
           <select class="format-select">
             <option>STEP (.step)</option>
@@ -224,6 +229,14 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;transi
         </div>
       </div>
 
+      <div class="dl-card" id="dl-card">
+        <div>
+          <h3>Export complete</h3>
+          <p>4 files — Male.step, Female.step, Assembly 1.step, Technical Drawing.pdf</p>
+        </div>
+        <a href="/demo_export.zip" download="Wood_Working_Project_export.zip" class="btn btn-primary btn-sm" onclick="this.style.opacity=0.6">Download ZIP</a>
+      </div>
+
       <div class="prog-card" id="prog-card">
         <div class="prog-head">
           <span class="prog-label" id="prog-label">Translating…</span>
@@ -237,7 +250,7 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;transi
 
       <div class="select-bar">
         <label>
-          <div class="el-check checked" id="select-all-check" onclick="toggleSelectAll()"></div>
+          <div class="el-check checked" id="select-all-check" style="pointer-events:none;cursor:default;"></div>
           <span>Select all</span>
         </label>
         <span class="sel-count" id="sel-count">4 selected</span>
@@ -277,7 +290,7 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;transi
   <button class="demo-btn" onclick="clickEl('as1')">Assembly</button>
   <button class="demo-btn" onclick="clickEl('dw1')">Drawing</button>
   <div class="demo-sep"></div>
-  <button class="demo-btn primary" onclick="startWalkthrough()">Walkthrough</button>
+  <button class="demo-btn primary" onclick="startWalkthrough()">How to use →</button>
   <div class="demo-sep"></div>
   <button class="demo-btn" onclick="runExport()">Simulate Export</button>
 </div>
@@ -329,7 +342,7 @@ document.getElementById('doc-list').innerHTML = `
 function renderElements() {
   document.getElementById('el-list').innerHTML = ELEMENTS.map(el => `
     <div class="el-card ${activeEl===el.id?'active-preview selected':''}" id="card-${el.id}" onclick="clickEl('${el.id}')">
-      <div class="el-check checked" onclick="event.stopPropagation()"></div>
+      <div class="el-check checked" style="pointer-events:none;cursor:default;"></div>
       <span class="el-badge badge-${el.type}">${TYPE_LBL[el.type]}</span>
       <span class="el-name">${el.name}</span>
       <span class="el-status">
@@ -339,7 +352,8 @@ function renderElements() {
     </div>`).join('');
 }
 
-function toggleSelectAll() {
+function toggleSelectAll() { return; // disabled in demo
+  
   allChecked = !allChecked;
   const saC = document.getElementById('select-all-check');
   saC.classList.toggle('checked', allChecked);
@@ -530,7 +544,15 @@ function runExport() {
     renderElements();
     if (p >= 100) {
       clearInterval(tick);
-      setTimeout(() => { card.classList.remove('show'); fill.style.width='0%'; ELEMENTS.forEach(e=>e.status='waiting'); renderElements(); }, 2500);
+      // Show download card, then reset after delay
+      showDownloadCard();
+      setTimeout(() => {
+        card.classList.remove('show');
+        fill.style.width='0%';
+        ELEMENTS.forEach(e=>e.status='waiting');
+        renderElements();
+        hideDownloadCard();
+      }, 8000);
     }
   }, 35);
 }
@@ -547,60 +569,85 @@ function toggleTheme() {
 
 // ── WALKTHROUGH ──────────────────────────────────────────────────
 const WTS = [
-  {label:'Step 1 of 6',title:'Welcome to OnExport',
-   desc:'OnExport connects to your Onshape account and lets you bulk-export any document to STEP, STL, PDF, DWG, and more — all in one click with live progress and 3D preview.',
-   icon:'→',hlt:'A real Onshape project',
-   hlb:'The Wood Working Project contains real parts uploaded directly from Onshape — male and female connectors, their assembly, and a technical drawing.',act:null},
-  {label:'Step 2 of 6',title:'Browse your documents',
-   desc:'After signing in, all your Onshape documents appear in the sidebar. Click any document to load its elements instantly.',
-   icon:'☰',hlt:'Sidebar navigation',
-   hlb:'Documents are sorted by last-modified time with Recent/Older filters. The search bar filters across all your Onshape projects in real time.',
-   act:()=>{ const dl=document.getElementById('doc-list'); dl.style.outline='2px solid #01c6f1'; dl.style.borderRadius='4px'; setTimeout(()=>{dl.style.outline='';},1600); }},
-  {label:'Step 3 of 6',title:'3D Part Preview',
-   desc:'Click any Part Studio or Assembly element to instantly load it in the built-in 3D viewer. Drag to orbit, scroll to zoom.',
-   icon:'3D',hlt:'Male connector — real geometry',
-   hlb:'This woodworking peg is 9.5mm head diameter with a 3mm threaded shaft, built accurately from the dimensions in your STEP file.',
-   act:()=>clickEl('ps1')},
-  {label:'Step 4 of 6',title:'Assembly Preview',
-   desc:'Assembly elements show all mated parts in position. See how the male pegs insert into the female receiver board.',
-   icon:'⚙',hlt:'Assembly 1 — both parts mated',
-   hlb:'The female receiver is 214mm long with 5 bore positions at 40mm spacing. Two male pegs are shown inserted at adjacent positions.',
-   act:()=>clickEl('as1')},
-  {label:'Step 5 of 6',title:'Technical Drawing',
-   desc:'Drawing elements render as full PDF previews — dimension lines, tolerances, section views, and title block, exactly as in Onshape.',
-   icon:'↗',hlt:'Drawing 1 — your actual PDF',
-   hlb:'This is the real technical drawing from your Onshape document, served directly by OnExport and shown inline — no separate viewer needed.',
-   act:()=>clickEl('dw1')},
-  {label:'Step 6 of 6',title:'Export & Download',
-   desc:'Choose your formats, select the elements you want, then hit Export. All translations run in parallel — one ZIP download delivers everything.',
-   icon:'↓',hlt:'Parallel export engine',
-   hlb:'All format translations start simultaneously. Live SSE progress tracks each element. When complete, one ZIP download contains all your files.',
-   act:()=>{ closeWt(); setTimeout(runExport,400); }},
+  { label:'Step 1 of 8', title:'Sign in with Onshape',
+    desc:'Start by clicking "Connect with Onshape" on the home page. OnExport uses Onshape's official OAuth2 login — your password never touches our server. You'll approve access on Onshape's site and land straight in the app.',
+    icon:'🔑', hlt:'Safe & secure login',
+    hlb:'OnExport only requests read access and export permissions. You can revoke access from your Onshape account settings any time.',
+    spotlight:null, act:null },
+  { label:'Step 2 of 8', title:'Find your document',
+    desc:'All your Onshape documents appear in the left sidebar, sorted by most recently modified. Use the search bar to filter by name, or use the Recent / Older tabs to browse. Click any document to open it.',
+    icon:'📁', hlt:'Wood Working Project',
+    hlb:'This demo has one document loaded. In the real app your full Onshape library appears here — scroll or search to find what you need.',
+    spotlight:'doc-list', act:null },
+  { label:'Step 3 of 8', title:'Your elements load automatically',
+    desc:'Once you click a document, OnExport fetches all its elements — Part Studios, Assemblies, and Drawings each appear as a separate row with a colour-coded badge. All are ticked ready to export by default.',
+    icon:'☰', hlt:'4 elements loaded',
+    hlb:'Male (Part Studio), Female (Part Studio), Assembly 1 (Assembly), Drawing 1 (Drawing). Each has a status dot on the right that updates live during export.',
+    spotlight:'el-list', act:null },
+  { label:'Step 4 of 8', title:'Preview any 3D part',
+    desc:'Click any Part Studio or Assembly row to load it instantly in the 3D viewer on the right. Drag to orbit, scroll to zoom. The Reset, Wire, and Fit buttons let you control the view.',
+    icon:'3D', hlt:'Male connector — try it',
+    hlb:'A 9.5mm head peg with a 3mm threaded shaft, rendered from the real STEP file geometry. Drag it to spin around.',
+    spotlight:null, act:()=>clickEl('ps1') },
+  { label:'Step 5 of 8', title:'Preview the assembly',
+    desc:'Assembly elements show all mated parts in their assembled positions — useful to visually verify everything looks right before you export.',
+    icon:'⚙', hlt:'Assembly 1',
+    hlb:'Both connectors are shown mated. The female receiver is 214mm long with 5 bore holes — two male pegs inserted at adjacent positions.',
+    spotlight:null, act:()=>clickEl('as1') },
+  { label:'Step 6 of 8', title:'Preview drawings inline',
+    desc:'Click a Drawing element and the technical drawing PDF opens directly in the preview panel — no separate viewer or download needed. Check dimensions and tolerances before exporting.',
+    icon:'↗', hlt:'Drawing 1 — real PDF',
+    hlb:'This is the actual technical drawing from the Onshape document, streamed live by OnExport. Dimension lines, tolerances and the title block all render exactly as in Onshape.',
+    spotlight:null, act:()=>clickEl('dw1') },
+  { label:'Step 7 of 8', title:'Pick your export formats',
+    desc:'Use the dropdowns at the top to choose formats. The "3D" dropdown sets the format for Part Studios and Assemblies. The "DRW" dropdown sets the format for Drawings. Untick any elements you don't need.',
+    icon:'⬇', hlt:'Mix and match',
+    hlb:'Export 3D parts as STEP while exporting drawings as DWG — all in one run. Supported 3D: STEP, STL, IGES, OBJ, GLTF. Supported drawings: PDF, DWG, DXF, SVG, PNG.',
+    spotlight:'export-bar', act:()=>clickEl('as1') },
+  { label:'Step 8 of 8', title:'Export and download your ZIP',
+    desc:'Hit Export. All translations run in parallel on Onshape's servers — a live progress bar tracks each file. When done, a green Download ZIP button appears. Click it to save all your files in one go.',
+    icon:'↓', hlt:'Try it now — for real',
+    hlb:'Click "Try it" below to run the export simulation and download the actual ZIP — Male.step, Female.step, Assembly 1.step and Technical Drawing.pdf.',
+    spotlight:null, act:()=>clickEl('as1') },
 ];
+
 let wtI = 0;
+let _spotEl = null;
 
 function startWalkthrough() { wtI=0; renderWt(); document.getElementById('wt-overlay').classList.add('show'); }
-function closeWt() { document.getElementById('wt-overlay').classList.remove('show'); }
+function closeWt() { document.getElementById('wt-overlay').classList.remove('show'); _clearSpot(); }
 function wtMove(d) {
-  if (wtI === WTS.length-1 && d === 1) { closeWt(); setTimeout(runExport,400); return; }
+  if (wtI===WTS.length-1 && d===1) { closeWt(); setTimeout(runExport,300); return; }
   wtI = Math.max(0, Math.min(WTS.length-1, wtI+d));
   renderWt();
 }
+function _setSpot(id) {
+  _clearSpot();
+  if (!id) return;
+  const el=document.getElementById(id); if (!el) return;
+  el.style.outline='2px solid #01c6f1'; el.style.outlineOffset='3px'; el.style.borderRadius='6px';
+  _spotEl=el;
+}
+function _clearSpot() {
+  if (_spotEl) { _spotEl.style.outline=''; _spotEl.style.outlineOffset=''; _spotEl.style.borderRadius=''; _spotEl=null; }
+}
 function renderWt() {
-  const s = WTS[wtI];
-  document.getElementById('wt-pfill').style.width = ((wtI+1)/WTS.length*100) + '%';
-  document.getElementById('wt-step-lbl').textContent = s.label;
-  document.getElementById('wt-title').textContent = s.title;
-  document.getElementById('wt-desc').textContent = s.desc;
-  document.getElementById('wt-icon').textContent = s.icon;
-  document.getElementById('wt-hl-t').textContent = s.hlt;
-  document.getElementById('wt-hl-b').textContent = s.hlb;
-  document.getElementById('wt-back').style.visibility = wtI===0 ? 'hidden' : 'visible';
-  document.getElementById('wt-next').textContent = wtI===WTS.length-1 ? 'Try it' : 'Next';
-  document.getElementById('wt-dots').innerHTML = WTS.map((_,i)=>`<div class="wt-dot ${i===wtI?'active':''}" onclick="wtI=${i};renderWt()"></div>`).join('');
+  const s=WTS[wtI];
+  document.getElementById('wt-pfill').style.width=((wtI+1)/WTS.length*100)+'%';
+  document.getElementById('wt-step-lbl').textContent=s.label;
+  document.getElementById('wt-title').textContent=s.title;
+  document.getElementById('wt-desc').textContent=s.desc;
+  document.getElementById('wt-icon').textContent=s.icon;
+  document.getElementById('wt-hl-t').textContent=s.hlt;
+  document.getElementById('wt-hl-b').textContent=s.hlb;
+  document.getElementById('wt-back').style.visibility=wtI===0?'hidden':'visible';
+  document.getElementById('wt-next').textContent=wtI===WTS.length-1?'Try it':'Next →';
+  document.getElementById('wt-dots').innerHTML=WTS.map((_,i)=>`<div class="wt-dot ${i===wtI?'active':''}" onclick="wtI=${i};renderWt()"></div>`).join('');
   if (s.act) s.act();
+  setTimeout(()=>_setSpot(s.spotlight), 60);
 }
 
+// ── INIT ─────────────────────────────────────────────────────────
 // ── INIT ─────────────────────────────────────────────────────────
 renderElements();
 initThree();
