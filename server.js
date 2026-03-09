@@ -121,48 +121,104 @@ app.get('/api/documents', requireAuth, async (req, res) => {
   }
 });
 
-// Fetch top-level folders (projects) from Onshape home tree
+// DEBUG: show raw globaltreenodes response so we can see exact field names
+app.get('/api/debug/tree', requireAuth, async (req, res) => {
+  try {
+    await refreshIfNeeded(req);
+    const token = req.session.accessToken;
+    const r = await axios.get(`${ONSHAPE_BASE}/api/globaltreenodes/magic/1`, {
+      headers: onshapeHeaders(token)
+    });
+    // Log every item's key fields
+    const summary = (r.data.items || []).map(i => ({
+      id: i.id,
+      name: i.name,
+      jsonType: i.jsonType,
+      resourceType: i.resourceType,
+      isContainer: i.isContainer,
+      canMove: i.canMove,
+    }));
+    console.log('Tree debug:', JSON.stringify(summary, null, 2));
+    res.json({ raw: r.data, summary });
+  } catch (e) {
+    res.status(500).json({ error: e.response?.data || e.message });
+  }
+});
+
+// Fetch top-level folders from Onshape home
 app.get('/api/projects', requireAuth, async (req, res) => {
   try {
     await refreshIfNeeded(req);
     const token = req.session.accessToken;
-    // globaltreenodes/magic/1 returns the top-level home items (folders + docs)
     const r = await axios.get(`${ONSHAPE_BASE}/api/globaltreenodes/magic/1`, {
-      params: { getPathToRoot: false, includeApplications: false },
       headers: onshapeHeaders(token)
     });
-    // Filter to only folders (type 2 = folder in Onshape tree)
-    const items = (r.data.items || []).filter(i => i.jsonType === 'folder-info' || i.resourceType === 'folder');
-    res.json({ items });
+    console.log('Projects raw items count:', (r.data.items||[]).length);
+    (r.data.items||[]).forEach(i => console.log('  item:', i.jsonType, i.resourceType, i.isContainer, i.name));
+    // Folders can appear as jsonType "folder-info", resourceType "folder", or isContainer true
+    const folders = (r.data.items || []).filter(i =>
+      i.jsonType === 'folder-info' ||
+      i.resourceType === 'folder' ||
+      i.isContainer === true
+    );
+    res.json({ items: folders });
   } catch (e) {
     console.error('Projects error:', e.response?.data || e.message);
     res.status(500).json({ error: e.response?.data || e.message });
   }
 });
 
-// Fetch documents inside a project folder
-app.get('/api/projects/:fid/documents', requireAuth, async (req, res) => {
+// Fetch contents of a folder — both sub-folders and documents
+app.get('/api/projects/:fid/contents', requireAuth, async (req, res) => {
   try {
     await refreshIfNeeded(req);
     const token = req.session.accessToken;
     const { fid } = req.params;
-    // globaltreenodes/folder/{fid} returns folder contents
     const r = await axios.get(`${ONSHAPE_BASE}/api/globaltreenodes/folder/${fid}`, {
-      params: { getPathToRoot: false, includeApplications: false },
       headers: onshapeHeaders(token)
     });
-    // Filter to only documents (not sub-folders), map to match our doc format
-    const items = (r.data.items || []).filter(i =>
-      i.jsonType !== 'folder-info' && i.resourceType !== 'folder'
+    console.log('Folder contents for', fid, ':', (r.data.items||[]).length, 'items');
+    (r.data.items||[]).forEach(i => console.log('  item:', i.jsonType, i.resourceType, i.isContainer, i.name));
+    
+    const folders = (r.data.items || []).filter(i =>
+      i.jsonType === 'folder-info' ||
+      i.resourceType === 'folder' ||
+      i.isContainer === true
+    ).map(i => ({ id: i.id, name: i.name, type: 'folder' }));
+
+    const docs = (r.data.items || []).filter(i =>
+      i.jsonType !== 'folder-info' &&
+      i.resourceType !== 'folder' &&
+      !i.isContainer &&
+      i.id  // must have an id
     ).map(i => ({
       id: i.id,
       name: i.name,
       modifiedAt: i.modifiedAt || i.createdAt,
-      resourceType: i.resourceType
+      type: 'document'
     }));
+
+    res.json({ folders, docs, raw: r.data.items });
+  } catch (e) {
+    console.error('Folder contents error:', e.response?.data || e.message);
+    res.status(500).json({ error: e.response?.data || e.message });
+  }
+});
+
+// Keep old /documents route as fallback for a folder
+app.get('/api/projects/:fid/documents', requireAuth, async (req, res) => {
+  const { fid } = req.params;
+  try {
+    await refreshIfNeeded(req);
+    const token = req.session.accessToken;
+    const r = await axios.get(`${ONSHAPE_BASE}/api/globaltreenodes/folder/${fid}`, {
+      headers: onshapeHeaders(token)
+    });
+    const items = (r.data.items || [])
+      .filter(i => i.resourceType !== 'folder' && !i.isContainer && i.id)
+      .map(i => ({ id: i.id, name: i.name, modifiedAt: i.modifiedAt || i.createdAt }));
     res.json({ items });
   } catch (e) {
-    console.error('Project docs error:', e.response?.data || e.message);
     res.status(500).json({ error: e.response?.data || e.message });
   }
 });

@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>OnExport</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Francois+One&family=Plus+Jakarta+Sans:wght@400;700;800&family=Exo+2:wght@400;700;800&family=Cormorant+Garamond:wght@400;700&display=swap" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -53,7 +53,7 @@
 html, body { height: 100%; }
 body {
   background: var(--bg); color: var(--text);
-  font-family: 'Syne', sans-serif; min-height: 100vh;
+  font-family: 'Syne', sans-serif; min-height: 100dvh; height: 100dvh; overflow: hidden;
   transition: background var(--tr), color var(--tr);
 }
 
@@ -70,6 +70,10 @@ body {
   background: linear-gradient(135deg, var(--c1), var(--c2));
   color: #fff;
   box-shadow: 0 2px 12px rgba(1,198,241,0.25);
+  font-family: 'Exo 2', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(1,198,241,0.35); }
 
@@ -143,7 +147,7 @@ body {
 .hero p { font-size: 17px; color: var(--text2); line-height: 1.65; max-width: 440px; margin-bottom: 32px; }
 
 /* ── APP ── */
-#app-page { display: none; flex-direction: column; height: 100vh; min-height: 0; overflow: hidden; }
+#app-page { display: none; flex-direction: column; height: 100dvh; min-height: 0; overflow: hidden; }
 
 .app-nav {
   display: flex; align-items: center; justify-content: space-between;
@@ -224,7 +228,7 @@ body {
 .doc-item:hover { background: rgba(128,128,128,0.05); }
 .doc-item.active { background: rgba(1,198,241,0.07); border-left-color: var(--hi); }
 
-.doc-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.doc-name { font-size: 14px; font-weight: 400; color: var(--text); margin-bottom: 2px; font-family: 'Francois One', sans-serif; }
 .doc-meta { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; }
 
 /* ── MAIN ── */
@@ -343,7 +347,7 @@ body {
 .badge-ASSEMBLY { background: rgba(27,211,214,0.1); color: var(--c3); }
 .badge-DRAWING { background: rgba(180,120,255,0.15); color: #c084fc; }
 
-.el-name { font-size: 13px; font-weight: 500; flex: 1; cursor: pointer; }
+.el-name { font-size: 14px; font-weight: 700; flex: 1; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; }
 
 .el-status {
   display: flex; align-items: center; gap: 5px;
@@ -521,7 +525,7 @@ optgroup { color: var(--text3); font-size: 11px; }
         <div class="doc-header">
           <div>
             <h2 id="detail-title"></h2>
-            <div class="doc-id" id="detail-id"></div>
+
           </div>
           <div class="export-bar" style="flex-wrap:wrap;gap:8px;">
             <div style="display:flex;align-items:center;gap:6px;">
@@ -577,9 +581,9 @@ optgroup { color: var(--text3); font-size: 11px; }
         <div class="section-label">Elements</div>
 
         <div class="select-bar">
-          <label>
-            <input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)" />
-            Select all
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <div class="el-check" id="select-all-check" onclick="toggleSelectAll()"></div>
+            <span>Select all</span>
           </label>
           <span class="sel-count" id="sel-count">0 selected</span>
         </div>
@@ -691,29 +695,130 @@ let allDocs = [];
 let activeFolder = null;
 
 let activeProject = null; // null = My Documents
+let folderStack = []; // breadcrumb stack: [{id, name}]
 
 async function loadProjects() {
   try {
     const r = await fetch('/api/projects');
     const data = await r.json();
     const projects = data.items || [];
+    console.log('Projects loaded:', projects.length, projects.map(p => p.name));
     const tabs = document.getElementById('project-tabs');
-    tabs.innerHTML = `<button class="folder-chip active" onclick="switchProject(null, this)">My Docs</button>` +
-      projects.map(p => `<button class="folder-chip" onclick="switchProject('${p.id}',this)">${esc(p.name)}</button>`).join('');
-  } catch { /* projects optional */ }
+    if (!projects.length) { tabs.style.display = 'none'; return; }
+    tabs.style.display = 'flex';
+    tabs.innerHTML =
+      `<button class="folder-chip active" onclick="switchProject(null, this)">My Docs</button>` +
+      projects.map(p =>
+        `<button class="folder-chip" onclick="switchProject('${p.id}',this)">${esc(p.name)}</button>`
+      ).join('');
+  } catch(e) {
+    console.error('loadProjects error:', e);
+  }
 }
 
 function switchProject(pid, btn) {
   activeProject = pid;
+  folderStack = pid ? [{ id: pid, name: btn.textContent }] : [];
   document.querySelectorAll('#project-tabs .folder-chip').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   activeFolder = null;
   loadDocs(document.getElementById('search-input').value);
 }
 
+async function openFolder(fid, fname) {
+  folderStack.push({ id: fid, name: fname });
+  await loadFolderContents(fid);
+}
+
+function goUpFolder() {
+  folderStack.pop();
+  const top = folderStack[folderStack.length - 1];
+  if (top) {
+    loadFolderContents(top.id);
+  } else {
+    // back to root of active project or My Docs
+    folderStack = [];
+    loadDocs(document.getElementById('search-input').value);
+  }
+}
+
+async function loadFolderContents(fid) {
+  const list = document.getElementById('doc-list');
+  list.innerHTML = '<div style="padding:18px;text-align:center;color:var(--text3)"><div class="spin"></div></div>';
+
+  // Show breadcrumb
+  renderBreadcrumb();
+
+  try {
+    const r = await fetch(`/api/projects/${fid}/contents`);
+    const data = await r.json();
+    console.log('Folder contents:', data);
+
+    const folders = data.folders || [];
+    const docs = data.docs || [];
+
+    let html = '';
+
+    // Back button
+    html += `<div class="doc-item" onclick="goUpFolder()" style="color:var(--text2);display:flex;align-items:center;gap:8px;">
+      <span style="font-size:16px;">←</span>
+      <span style="font-size:12px;">Back</span>
+    </div>`;
+
+    // Sub-folders
+    folders.forEach(f => {
+      html += `<div class="doc-item" onclick="openFolder('${f.id}','${esc(f.name)}')" style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:14px;color:var(--text3);">📁</span>
+        <div>
+          <div class="doc-name">${esc(f.name)}</div>
+          <div class="doc-meta">folder</div>
+        </div>
+      </div>`;
+    });
+
+    // Documents
+    docs.forEach(d => {
+      html += `<div class="doc-item" onclick="selectDoc('${d.id}','${esc(d.name)}')" id="doc-${d.id}">
+        <div class="doc-name">${esc(d.name)}</div>
+        <div class="doc-meta">${ago(d.modifiedAt)}</div>
+      </div>`;
+    });
+
+    if (!folders.length && !docs.length) {
+      html += '<div style="padding:16px;color:var(--text3);font-size:13px;">Empty folder.</div>';
+    }
+
+    list.innerHTML = html;
+    document.getElementById('folder-filter').style.display = 'none';
+  } catch(e) {
+    list.innerHTML = `<div style="padding:16px;color:#f87171;font-size:13px;">Failed to load folder: ${e.message}</div>`;
+  }
+}
+
+function renderBreadcrumb() {
+  const ff = document.getElementById('folder-filter');
+  if (!folderStack.length) { ff.style.display = 'none'; return; }
+  ff.style.display = 'flex';
+  ff.style.flexWrap = 'wrap';
+  ff.style.gap = '4px';
+  ff.style.padding = '6px 12px';
+  ff.innerHTML = folderStack.map((f, i) =>
+    `<span style="font-size:11px;color:${i === folderStack.length-1 ? 'var(--text)' : 'var(--text2)'};cursor:${i < folderStack.length-1 ? 'pointer' : 'default'}"
+      onclick="${i < folderStack.length-1 ? `navToStack(${i})` : ''}">${esc(f.name)}</span>` +
+    (i < folderStack.length-1 ? '<span style="color:var(--text3);font-size:11px">/</span>' : '')
+  ).join('');
+}
+
+function navToStack(idx) {
+  folderStack = folderStack.slice(0, idx + 1);
+  loadFolderContents(folderStack[idx].id);
+}
+
 async function loadDocs(q = '') {
   const list = document.getElementById('doc-list');
   list.innerHTML = '<div style="padding:18px;text-align:center;color:var(--text3)"><div class="spin"></div></div>';
+  folderStack = [];
+  renderBreadcrumb();
   try {
     const url = activeProject
       ? `/api/projects/${activeProject}/documents?q=${encodeURIComponent(q)}`
@@ -794,10 +899,10 @@ async function selectDoc(did, name) {
   document.getElementById('empty-state').classList.add('hidden');
   document.getElementById('doc-detail').classList.remove('hidden');
   document.getElementById('detail-title').textContent = name;
-  document.getElementById('detail-id').textContent = did;
+
   document.getElementById('prog-card').classList.remove('show');
   document.getElementById('dl-card').classList.remove('show');
-  document.getElementById('select-all').checked = false;
+  const saCheck = document.getElementById('select-all-check'); if(saCheck) saCheck.classList.remove('checked');
   updateSelCount();
   clearPreview();
 
@@ -812,7 +917,7 @@ async function selectDoc(did, name) {
     allElIds = els.map(e => e.id);
     // Select all by default
     els.forEach(e => selectedEls.add(e.id));
-    document.getElementById('select-all').checked = true;
+    const saCheck2 = document.getElementById('select-all-check'); if(saCheck2) saCheck2.classList.add('checked');
     updateSelCount();
 
     if (!els.length) {
@@ -846,11 +951,15 @@ function toggleEl(eid) {
     document.getElementById(`chk-${eid}`)?.classList.add('checked');
     document.getElementById(`el-${eid}`)?.classList.add('selected');
   }
-  document.getElementById('select-all').checked = selectedEls.size === allElIds.length;
+  const saC = document.getElementById('select-all-check'); if(saC) saC.classList.toggle('checked', selectedEls.size === allElIds.length && allElIds.length > 0);
   updateSelCount();
 }
 
-function toggleSelectAll(checked) {
+function toggleSelectAll() {
+  const check = document.getElementById('select-all-check');
+  const allSelected = selectedEls.size === allElIds.length && allElIds.length > 0;
+  const checked = !allSelected;
+  check?.classList.toggle('checked', checked);
   allElIds.forEach(eid => {
     if (checked) {
       selectedEls.add(eid);
