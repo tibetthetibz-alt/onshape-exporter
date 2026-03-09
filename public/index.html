@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
-<link rel="icon" type="image/jpeg" href="/logo.jpg" />
+<link rel="icon" type="image/png" href="/logo.png" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>OnExport</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -111,11 +111,12 @@ body {
 }
 
 .logo-icon {
-  width: 30px; height: 30px; border-radius: 8px;
-  background: #fff;
-  display: flex; align-items: center; justify-content: center;
-  overflow: hidden; flex-shrink: 0;
+  width: 28px; height: 28px; border-radius: 6px;
+  background: transparent;
+  display: block; flex-shrink: 0;
+  object-fit: contain;
 }
+[data-theme="dark"] .logo-icon { filter: invert(1); }
 
 .nav-right { display: flex; align-items: center; gap: 10px; }
 
@@ -455,7 +456,7 @@ optgroup { color: var(--text3); font-size: 11px; }
 <div id="landing-page">
   <nav class="nav">
     <a href="#" class="logo">
-      <img src="/logo.jpg" class="logo-icon" alt="OnExport" style="object-fit:cover;" />
+      <img src="/logo.png" class="logo-icon" alt="OnExport" />
       OnExport
     </a>
     <div class="nav-right">
@@ -478,7 +479,7 @@ optgroup { color: var(--text3); font-size: 11px; }
 <div id="app-page">
   <nav class="app-nav">
     <a href="#" class="logo">
-      <img src="/logo.jpg" class="logo-icon" alt="OnExport" style="object-fit:cover;" />
+      <img src="/logo.png" class="logo-icon" alt="OnExport" />
       OnExport
     </a>
     <div class="nav-right-app">

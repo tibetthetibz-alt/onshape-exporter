@@ -343,38 +343,47 @@ app.get('/api/export/:did', requireAuth, async (req, res) => {
     const archive = archiver('zip', { zlib: { level: 6 } });
     archive.pipe(res);
 
-    for (const el of elements) {
-      // Use drawing format for drawings, 3D format for everything else
+    // Start ALL translations in parallel, then download results
+    const jobs = await Promise.all(elements.map(async el => {
       const elFormat = el.elementType === 'DRAWING' ? fmtDwg : format;
+      const safeName = el.name.replace(/[^a-zA-Z0-9_\- ]/g, '_');
       try {
         const translation = await startTranslation(token, did, wid, el, elFormat);
-        if (!translation) continue;
+        if (!translation) return { el, elFormat, safeName, skip: true };
+        return { el, elFormat, safeName, translationId: translation.id };
+      } catch (err) {
+        return { el, elFormat, safeName, error: err.message };
+      }
+    }));
 
-        const done = await pollTranslation(token, translation.id);
-        console.log('Translation done:', JSON.stringify({ 
-          state: done.requestState, 
-          externalIds: done.resultExternalDataIds,
-          documentIds: done.resultDocumentId,
-          elementIds: done.resultElementIds
-        }));
-        const externalIds = done.resultExternalDataIds || [];
-        const ext = getExtension(elFormat);
-        const safeName = el.name.replace(/[^a-zA-Z0-9_\- ]/g, '_');
+    // Poll all translations in parallel
+    const settled = await Promise.all(jobs.map(async job => {
+      if (job.skip || job.error) return job;
+      try {
+        const done = await pollTranslation(token, job.translationId);
+        return { ...job, done };
+      } catch (err) {
+        return { ...job, error: err.message };
+      }
+    }));
 
-        if (externalIds.length > 0) {
-          for (let i = 0; i < externalIds.length; i++) {
-            const buf = await downloadExternalData(token, did, externalIds[i]);
-            const suffix = externalIds.length > 1 ? `_${i + 1}` : '';
-            archive.append(buf, { name: `${safeName}${suffix}.${ext}` });
-          }
-        } else {
-          throw new Error('No result data from translation');
+    // Append files to ZIP
+    for (const job of settled) {
+      if (job.skip) continue;
+      if (job.error) {
+        archive.append(`Export failed: ${job.error}`, { name: `${job.safeName}_ERROR.txt` });
+        continue;
+      }
+      const externalIds = job.done.resultExternalDataIds || [];
+      const ext = getExtension(job.elFormat);
+      if (externalIds.length > 0) {
+        for (let i = 0; i < externalIds.length; i++) {
+          const buf = await downloadExternalData(token, did, externalIds[i]);
+          const suffix = externalIds.length > 1 ? `_${i + 1}` : '';
+          archive.append(buf, { name: `${job.safeName}${suffix}.${ext}` });
         }
-      } catch (elErr) {
-        // Add a text error file instead of crashing
-        archive.append(`Export failed: ${elErr.message}`, {
-          name: `${el.name.replace(/[^a-zA-Z0-9_\- ]/g, '_')}_ERROR.txt`
-        });
+      } else {
+        archive.append('No result data from translation', { name: \`\${job.safeName}_ERROR.txt\` });
       }
     }
 
@@ -418,24 +427,44 @@ app.get('/api/export/:did/progress', requireAuth, async (req, res) => {
     send({ type: 'start', total: elements.length });
 
     const results = [];
-    for (let i = 0; i < elements.length; i++) {
-      const el = elements[i];
-      const elFormat2 = el.elementType === 'DRAWING' ? fmtDwg2 : format;
+
+    // Start all translations in parallel
+    elements.forEach((el, i) => {
       send({ type: 'progress', index: i, name: el.name, elementType: el.elementType, status: 'translating' });
+    });
+
+    const sseJobs = await Promise.all(elements.map(async (el, i) => {
+      const elFormat2 = el.elementType === 'DRAWING' ? fmtDwg2 : format;
       try {
         const translation = await startTranslation(token, did, wid, el, elFormat2);
-        if (!translation) {
-          send({ type: 'progress', index: i, name: el.name, status: 'skipped' });
-          continue;
-        }
-        await pollTranslation(token, translation.id);
+        if (!translation) return { i, el, skip: true };
+        return { i, el, translationId: translation.id };
+      } catch (err) {
+        return { i, el, error: err.message };
+      }
+    }));
+
+    // Poll all in parallel, send progress as each finishes
+    await Promise.all(sseJobs.map(async job => {
+      const { i, el } = job;
+      if (job.skip) {
+        send({ type: 'progress', index: i, name: el.name, status: 'skipped' });
+        return;
+      }
+      if (job.error) {
+        results.push({ name: el.name, status: 'failed', error: job.error });
+        send({ type: 'progress', index: i, name: el.name, status: 'failed', error: job.error });
+        return;
+      }
+      try {
+        await pollTranslation(token, job.translationId);
         results.push({ elementId: el.id, name: el.name, elementType: el.elementType, status: 'done' });
         send({ type: 'progress', index: i, name: el.name, status: 'done' });
       } catch (err) {
         results.push({ name: el.name, status: 'failed', error: err.message });
         send({ type: 'progress', index: i, name: el.name, status: 'failed', error: err.message });
       }
-    }
+    }));
 
     send({ type: 'complete', results });
     res.end();
