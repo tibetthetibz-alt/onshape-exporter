@@ -121,15 +121,21 @@ app.get('/api/documents', requireAuth, async (req, res) => {
   }
 });
 
-// Fetch user's projects (folders)
+// Fetch top-level folders (projects) from Onshape home tree
 app.get('/api/projects', requireAuth, async (req, res) => {
   try {
     await refreshIfNeeded(req);
     const token = req.session.accessToken;
-    // Onshape calls them "global folders" / projects
-    const r = await axios.get(`${ONSHAPE_BASE}/api/v10/globalfolders/home`, { headers: onshapeHeaders(token) });
-    res.json(r.data);
+    // globaltreenodes/magic/1 returns the top-level home items (folders + docs)
+    const r = await axios.get(`${ONSHAPE_BASE}/api/globaltreenodes/magic/1`, {
+      params: { getPathToRoot: false, includeApplications: false },
+      headers: onshapeHeaders(token)
+    });
+    // Filter to only folders (type 2 = folder in Onshape tree)
+    const items = (r.data.items || []).filter(i => i.jsonType === 'folder-info' || i.resourceType === 'folder');
+    res.json({ items });
   } catch (e) {
+    console.error('Projects error:', e.response?.data || e.message);
     res.status(500).json({ error: e.response?.data || e.message });
   }
 });
@@ -140,12 +146,23 @@ app.get('/api/projects/:fid/documents', requireAuth, async (req, res) => {
     await refreshIfNeeded(req);
     const token = req.session.accessToken;
     const { fid } = req.params;
-    const { q = '' } = req.query;
-    const params = { sortColumn: 'modifiedAt', sortOrder: 'desc', limit: 20, filter: 0, parentId: fid };
-    if (q) params.q = q;
-    const r = await axios.get(`${ONSHAPE_BASE}/api/v10/documents`, { params, headers: onshapeHeaders(token) });
-    res.json(r.data);
+    // globaltreenodes/folder/{fid} returns folder contents
+    const r = await axios.get(`${ONSHAPE_BASE}/api/globaltreenodes/folder/${fid}`, {
+      params: { getPathToRoot: false, includeApplications: false },
+      headers: onshapeHeaders(token)
+    });
+    // Filter to only documents (not sub-folders), map to match our doc format
+    const items = (r.data.items || []).filter(i =>
+      i.jsonType !== 'folder-info' && i.resourceType !== 'folder'
+    ).map(i => ({
+      id: i.id,
+      name: i.name,
+      modifiedAt: i.modifiedAt || i.createdAt,
+      resourceType: i.resourceType
+    }));
+    res.json({ items });
   } catch (e) {
+    console.error('Project docs error:', e.response?.data || e.message);
     res.status(500).json({ error: e.response?.data || e.message });
   }
 });
