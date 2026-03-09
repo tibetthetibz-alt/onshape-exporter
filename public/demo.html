@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OnExport — Live Demo</title>
+<link rel="icon" type="image/png" href="/logo.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --c1: #00007E; --c2: #01c6f1; --c3: #1BD3D6;
+  --c4: #27DEC4; --c5: #46EDA5; --c6: #6aff7e;
+  --radius: 10px; --tr: 0.15s ease;
+}
+[data-theme="dark"] {
+  --bg: #0b0b14; --bg2: #111120; --surface: #17172a;
+  --surface2: #1f1f36; --border: #252540;
+  --text: #f0f0ff; --text2: #9090b8; --text3: #50507a;
+  --hi: var(--c2);
+}
+
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; overflow: hidden; }
+
+/* ── NAV ── */
+.nav {
+  height: 48px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; border-bottom: 1px solid var(--border);
+  background: var(--bg2); flex-shrink: 0; position: relative; z-index: 50;
+}
+.logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; color: var(--text); text-decoration: none; }
+.logo-icon { width: 26px; height: 26px; border-radius: 6px; background: #fff; overflow: hidden; flex-shrink: 0; }
+.logo-icon img { width: 100%; height: 100%; object-fit: contain; }
+.demo-badge {
+  padding: 3px 10px; border-radius: 20px;
+  background: rgba(1,198,241,0.1); border: 1px solid rgba(1,198,241,0.3);
+  color: var(--c2); font-size: 10px; font-family: 'DM Mono', monospace;
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.user-chip {
+  display: flex; align-items: center; gap: 7px;
+  padding: 4px 10px 4px 4px; border-radius: 20px;
+  background: var(--surface); border: 1px solid var(--border); font-size: 13px;
+}
+.avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--c2), var(--c5));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #000;
+}
+.btn-danger { padding: 6px 14px; border-radius: 8px; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: #f87171; font-size: 13px; font-family: 'Syne', sans-serif; cursor: pointer; }
+
+/* ── LAYOUT ── */
+.shell { display: flex; flex-direction: column; height: 100vh; }
+.workspace { display: grid; grid-template-columns: 240px 1fr 360px; flex: 1; min-height: 0; overflow: hidden; }
+
+/* ── SIDEBAR ── */
+.sidebar { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; background: var(--bg2); }
+.sidebar-top { padding: 14px 12px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.sidebar-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); font-family: 'DM Mono', monospace; margin-bottom: 8px; }
+.search { display: flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; }
+.search input { background: none; border: none; outline: none; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; width: 100%; }
+.doc-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+.doc-item { padding: 9px 14px; cursor: pointer; border-left: 2px solid transparent; transition: all 0.12s; }
+.doc-item:hover { background: var(--surface2); }
+.doc-item.active { background: var(--surface2); border-left-color: var(--c2); }
+.doc-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.doc-meta { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+/* ── MAIN PANEL ── */
+.main-panel { display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+.doc-header { padding: 16px 22px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.doc-title { font-size: 18px; font-weight: 700; }
+.export-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.format-select { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 7px 10px; font-family: 'DM Mono', monospace; font-size: 12px; outline: none; }
+.label-sm { font-size: 10px; color: var(--text3); font-family: 'DM Mono', monospace; }
+.btn-export { padding: 8px 20px; border-radius: 10px; border: none; background: linear-gradient(90deg, var(--c2), var(--c4)); color: #000; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+
+.elements-section { padding: 16px 22px; flex: 1; overflow-y: auto; }
+.elements-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); font-family: 'DM Mono', monospace; margin-bottom: 10px; }
+
+.select-all-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; margin-bottom: 6px; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); font-size: 13px; color: var(--text2); }
+.count-badge { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3); }
+
+.el-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; border-radius: 10px;
+  border: 1px solid var(--border); margin-bottom: 6px;
+  background: var(--surface); cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.12s;
+}
+.el-card:hover { border-color: var(--c2); box-shadow: 0 0 0 1px rgba(1,198,241,0.15); }
+.el-card.active-preview { border-color: var(--c2); box-shadow: 0 0 0 2px rgba(1,198,241,0.2); }
+
+.check { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
+.check.on { background: var(--c2); border-color: var(--c2); }
+.check.on::after { content: '✓'; font-size: 10px; color: #000; font-weight: 700; }
+
+.el-badge { font-size: 9px; padding: 2px 7px; border-radius: 4px; font-family: 'DM Mono', monospace; font-weight: 500; letter-spacing: 0.5px; white-space: nowrap; }
+.badge-PS { background: rgba(1,198,241,0.1); color: var(--c2); }
+.badge-AS { background: rgba(27,211,214,0.1); color: var(--c3); }
+.badge-DW { background: rgba(180,120,255,0.15); color: #c084fc; }
+
+.el-name { flex: 1; font-size: 13px; font-weight: 500; }
+.dot-status { display: flex; align-items: center; gap: 5px; font-size: 11px; font-family: 'DM Mono', monospace; }
+.dot { width: 7px; height: 7px; border-radius: 50%; }
+.dot.waiting { background: var(--text3); }
+.dot.done { background: var(--c6); }
+.dot.active { background: var(--c2); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* Progress */
+.progress-card { margin: 0 22px 12px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: none; }
+.progress-card.show { display: block; }
+.progress-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; }
+.prog-track { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--c2), var(--c5)); transition: width 0.4s ease; }
+
+/* ── PREVIEW PANEL ── */
+.preview-panel { border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; background: var(--bg2); position: relative; }
+#canvas-wrap { flex: 1; position: relative; min-height: 0; }
+canvas { display: block; width: 100%; height: 100%; }
+
+.preview-toolbar {
+  position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 6px; background: rgba(17,17,32,0.85);
+  backdrop-filter: blur(8px); border: 1px solid var(--border);
+  border-radius: 10px; padding: 5px 8px;
+}
+.tool-btn { padding: 5px 12px; border-radius: 6px; border: none; background: transparent; color: var(--text2); font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; transition: all 0.12s; }
+.tool-btn:hover, .tool-btn.active { background: var(--surface2); color: var(--text); }
+
+.preview-footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 8px 14px; font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text3); border-top: 1px solid var(--border); background: var(--bg2); display: flex; justify-content: space-between; }
+
+/* Drawing preview overlay */
+.drawing-overlay {
+  position: absolute; inset: 0;
+  background: #fff;
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  overflow: auto;
+}
+.drawing-overlay.show { display: flex; }
+.drawing-svg { width: 90%; max-width: 340px; }
+
+/* ── DEMO CONTROLS ── */
+.demo-controls {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: rgba(17,17,32,0.92); backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 10px 16px; display: flex; align-items: center; gap: 12px;
+  font-size: 12px; color: var(--text2); z-index: 100;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.demo-btn {
+  padding: 7px 16px; border-radius: 8px; border: none;
+  background: var(--surface2); color: var(--text);
+  font-family: 'Syne', sans-serif; font-size: 12px; cursor: pointer;
+  transition: all 0.12s; white-space: nowrap;
+}
+.demo-btn:hover { background: var(--border); }
+.demo-btn.primary { background: linear-gradient(90deg, var(--c2), var(--c4)); color: #000; font-weight: 700; }
+.demo-sep { width: 1px; height: 20px; background: var(--border); }
+
+/* Canvas placeholder */
+.canvas-ph {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+  color: var(--text3); font-size: 13px; pointer-events: none;
+}
+.canvas-ph svg { opacity: 0.3; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- NAV -->
+  <nav class="nav">
+    <a href="/" class="logo">
+      <div class="logo-icon"><img src="/logo.png" alt=""/></div>
+      OnExport
+    </a>
+    <span class="demo-badge">Demo Mode</span>
+    <div class="nav-right">
+      <div class="user-chip">
+        <div class="avatar">T</div>
+        Tibet Asikoglu
+      </div>
+      <a href="/" class="btn-danger">← Back</a>
+    </div>
+  </nav>
+
+  <!-- WORKSPACE -->
+  <div class="workspace">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-top">
+        <div class="sidebar-label">Documents</div>
+        <div class="search">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Search…" value=""/>
+        </div>
+      </div>
+      <div class="doc-list" id="doc-list"></div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main-panel">
+      <div class="doc-header">
+        <div class="doc-title" id="doc-title">Mechanical Assembly v3</div>
+        <div class="export-bar">
+          <span class="label-sm">3D</span>
+          <select class="format-select" id="fmt-3d">
+            <option>STEP (.step)</option>
+            <option>STL (.stl)</option>
+            <option>IGES (.igs)</option>
+            <option>OBJ (.obj)</option>
+            <option>GLTF (.glb)</option>
+          </select>
+          <span class="label-sm">DRW</span>
+          <select class="format-select" id="fmt-drw">
+            <option>PDF (.pdf)</option>
+            <option>DWG (.dwg)</option>
+            <option>DXF (.dxf)</option>
+            <option>SVG (.svg)</option>
+          </select>
+          <button class="btn-export" id="export-btn" onclick="runExport()">Export 3 files</button>
+        </div>
+      </div>
+
+      <div class="progress-card" id="prog-card">
+        <div class="progress-row">
+          <span id="prog-label" style="color:var(--text2);font-family:'DM Mono',monospace;font-size:12px;">Translating…</span>
+          <span id="prog-pct" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--c2);">0%</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+      </div>
+
+      <div class="elements-section">
+        <div class="elements-label">Elements</div>
+        <div class="select-all-row">
+          <span>Select all</span>
+          <span class="count-badge" id="sel-count">3 selected</span>
+        </div>
+        <div id="el-list"></div>
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="preview-panel">
+      <div id="canvas-wrap">
+        <canvas id="three-canvas"></canvas>
+        <div class="canvas-ph" id="canvas-ph">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          </svg>
+          <span>Click an element to preview</span>
+        </div>
+
+        <!-- Drawing overlay -->
+        <div class="drawing-overlay" id="drawing-overlay">
+          <svg class="drawing-svg" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+            <!-- Title block -->
+            <rect width="400" height="300" fill="#fff"/>
+            <!-- Border -->
+            <rect x="5" y="5" width="390" height="290" fill="none" stroke="#333" stroke-width="1.5"/>
+            <rect x="10" y="10" width="380" height="280" fill="none" stroke="#333" stroke-width="0.5"/>
+            <!-- Main part - top view -->
+            <rect x="40" y="30" width="160" height="120" fill="none" stroke="#222" stroke-width="1.5"/>
+            <rect x="60" y="50" width="40" height="30" fill="none" stroke="#444" stroke-width="0.7" stroke-dasharray="4,2"/>
+            <rect x="130" y="50" width="40" height="30" fill="none" stroke="#444" stroke-width="0.7" stroke-dasharray="4,2"/>
+            <!-- Centre lines -->
+            <line x1="120" y1="20" x2="120" y2="165" stroke="#aaa" stroke-width="0.5" stroke-dasharray="8,3,2,3"/>
+            <line x1="25" y1="90" x2="215" y2="90" stroke="#aaa" stroke-width="0.5" stroke-dasharray="8,3,2,3"/>
+            <!-- Holes -->
+            <circle cx="80" cy="65" r="10" fill="none" stroke="#222" stroke-width="1"/>
+            <circle cx="150" cy="65" r="10" fill="none" stroke="#222" stroke-width="1"/>
+            <circle cx="120" cy="90" r="15" fill="none" stroke="#222" stroke-width="1.5"/>
+            <!-- Side view -->
+            <rect x="240" y="30" width="80" height="120" fill="none" stroke="#222" stroke-width="1.5"/>
+            <line x1="240" y1="50" x2="320" y2="50" stroke="#444" stroke-width="0.7"/>
+            <line x1="240" y1="130" x2="320" y2="130" stroke="#444" stroke-width="0.7"/>
+            <!-- Dimension lines -->
+            <line x1="40" y1="168" x2="200" y2="168" stroke="#555" stroke-width="0.7"/>
+            <line x1="40" y1="164" x2="40" y2="172" stroke="#555" stroke-width="0.7"/>
+            <line x1="200" y1="164" x2="200" y2="172" stroke="#555" stroke-width="0.7"/>
+            <text x="120" y="178" text-anchor="middle" font-size="8" fill="#333" font-family="monospace">160.00</text>
+            <line x1="215" y1="30" x2="215" y2="150" stroke="#555" stroke-width="0.7"/>
+            <line x1="211" y1="30" x2="219" y2="30" stroke="#555" stroke-width="0.7"/>
+            <line x1="211" y1="150" x2="219" y2="150" stroke="#555" stroke-width="0.7"/>
+            <text x="224" y="94" text-anchor="start" font-size="8" fill="#333" font-family="monospace">120.00</text>
+            <!-- Title block bottom -->
+            <rect x="10" y="255" width="380" height="35" fill="none" stroke="#333" stroke-width="0.7"/>
+            <line x1="200" y1="255" x2="200" y2="290" stroke="#333" stroke-width="0.7"/>
+            <line x1="300" y1="255" x2="300" y2="290" stroke="#333" stroke-width="0.7"/>
+            <text x="105" y="266" text-anchor="middle" font-size="7" fill="#666" font-family="monospace">TITLE</text>
+            <text x="105" y="278" text-anchor="middle" font-size="9" fill="#222" font-family="monospace" font-weight="bold">MECHANICAL ASSEMBLY V3</text>
+            <text x="250" y="266" text-anchor="middle" font-size="7" fill="#666" font-family="monospace">DATE</text>
+            <text x="250" y="278" text-anchor="middle" font-size="9" fill="#222" font-family="monospace">2026-03-10</text>
+            <text x="350" y="266" text-anchor="middle" font-size="7" fill="#666" font-family="monospace">SCALE</text>
+            <text x="350" y="278" text-anchor="middle" font-size="9" fill="#222" font-family="monospace">1:2</text>
+            <!-- View labels -->
+            <text x="120" y="195" text-anchor="middle" font-size="9" fill="#555" font-family="monospace">TOP VIEW</text>
+            <text x="280" y="195" text-anchor="middle" font-size="9" fill="#555" font-family="monospace">SIDE VIEW</text>
+          </svg>
+        </div>
+
+        <div class="preview-toolbar" id="toolbar">
+          <button class="tool-btn active" id="btn-reset" onclick="resetCam()">Reset</button>
+          <button class="tool-btn" id="btn-wire" onclick="toggleWire()">Wire</button>
+          <button class="tool-btn" id="btn-fit" onclick="fitCam()">Fit</button>
+        </div>
+      </div>
+      <div class="preview-footer">
+        <span id="preview-label">No model loaded</span>
+        <span id="tri-count"></span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- DEMO CONTROLS -->
+<div class="demo-controls">
+  <span style="font-family:'DM Mono',monospace;">Try it:</span>
+  <button class="demo-btn" onclick="previewModel('bracket')">🔷 3D Part</button>
+  <button class="demo-btn" onclick="previewModel('assembly')">⚙️ Assembly</button>
+  <button class="demo-btn" onclick="previewDrawing()">📐 Drawing</button>
+  <div class="demo-sep"></div>
+  <button class="demo-btn primary" onclick="runExport()">▶ Simulate Export</button>
+  <div class="demo-sep"></div>
+  <a href="/" style="color:var(--text2);font-size:12px;font-family:'DM Mono',monospace;text-decoration:none;">← Home</a>
+</div>
+
+<script>
+// ── DEMO DATA ──────────────────────────────────────────────────────────────
+const DOCS = [
+  { id: 'a', name: 'Mechanical Assembly v3', age: '2h ago', active: true },
+  { id: 'b', name: 'Robot Arm Frame',         age: '1d ago' },
+  { id: 'c', name: 'Enclosure v2',            age: '3d ago' },
+  { id: 'd', name: 'Bracket Collection',      age: '5d ago' },
+  { id: 'e', name: 'DT NEA investigate Y11',  age: '11d ago' },
+  { id: 'f', name: 'Final design',            age: '5d ago' },
+];
+
+const ELEMENTS = [
+  { id: 'ps1', name: 'Body Frame',   type: 'PS', status: 'waiting' },
+  { id: 'as1', name: 'Assembly 1',  type: 'AS', status: 'waiting' },
+  { id: 'dw1', name: 'Drawing 1',   type: 'DW', status: 'waiting' },
+];
+
+const TYPE_LABEL = { PS: 'PART STUDIO', AS: 'ASSEMBLY', DW: 'DRAWING' };
+
+// ── RENDER SIDEBAR ─────────────────────────────────────────────────────────
+function renderSidebar() {
+  document.getElementById('doc-list').innerHTML = DOCS.map(d => `
+    <div class="doc-item ${d.active ? 'active' : ''}" onclick="selectDoc('${d.id}')">
+      <div class="doc-name">${d.name}</div>
+      <div class="doc-meta">${d.age}</div>
+    </div>`).join('');
+}
+
+function selectDoc(id) {
+  DOCS.forEach(d => d.active = d.id === id);
+  const doc = DOCS.find(d => d.id === id);
+  document.getElementById('doc-title').textContent = doc.name;
+  renderSidebar();
+  ELEMENTS.forEach(e => e.status = 'waiting');
+  renderElements();
+  clearPreview();
+}
+
+// ── RENDER ELEMENTS ────────────────────────────────────────────────────────
+function renderElements() {
+  document.getElementById('el-list').innerHTML = ELEMENTS.map(el => `
+    <div class="el-card ${activeEl === el.id ? 'active-preview' : ''}" id="el-${el.id}" onclick="clickEl('${el.id}')">
+      <div class="check on"></div>
+      <span class="el-badge badge-${el.type}">${TYPE_LABEL[el.type]}</span>
+      <span class="el-name">${el.name}</span>
+      <span class="dot-status">
+        <span class="dot ${el.status}"></span>
+        <span style="color:var(--text3)">${el.status}</span>
+      </span>
+    </div>`).join('');
+}
+
+let activeEl = null;
+
+function clickEl(id) {
+  activeEl = id;
+  const el = ELEMENTS.find(e => e.id === id);
+  renderElements();
+  if (el.type === 'DW') previewDrawing();
+  else previewModel(el.type === 'AS' ? 'assembly' : 'bracket');
+}
+
+// ── THREE.JS SETUP ─────────────────────────────────────────────────────────
+let renderer, scene, camera, meshObj, wireMode = false, needsRender = true;
+let animId = null;
+
+function initThree() {
+  const canvas = document.getElementById('three-canvas');
+  const wrap = document.getElementById('canvas-wrap');
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  renderer.setClearColor(0x0b0b14);
+  resize3d();
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0b0b14);
+
+  const grid = new THREE.GridHelper(30, 30, 0x252540, 0x1a1a30);
+  grid.position.y = -1; scene.add(grid);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const d1 = new THREE.DirectionalLight(0x01c6f1, 1.0); d1.position.set(5, 10, 5); scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0x6aff7e, 0.4); d2.position.set(-5, 5, -5); scene.add(d2);
+  const d3 = new THREE.DirectionalLight(0xffffff, 0.3); d3.position.set(0, -5, 0); scene.add(d3);
+
+  camera = new THREE.PerspectiveCamera(45, wrap.clientWidth / wrap.clientHeight, 0.01, 1000);
+  camera.position.set(4, 3, 5);
+  camera.lookAt(0, 0, 0);
+
+  makeOrbit(camera, canvas);
+  window.addEventListener('resize', resize3d);
+
+  (function loop() {
+    requestAnimationFrame(loop);
+    if (needsRender) { renderer.render(scene, camera); needsRender = false; }
+  })();
+}
+
+function resize3d() {
+  const w = document.getElementById('canvas-wrap');
+  if (!renderer || !w) return;
+  renderer.setSize(w.clientWidth, w.clientHeight, false);
+  if (camera) { camera.aspect = w.clientWidth / w.clientHeight; camera.updateProjectionMatrix(); }
+  needsRender = true;
+}
+
+function makeOrbit(cam, el) {
+  let drag = false, lx = 0, ly = 0, th = 0.8, ph = 0.8, r = 6;
+  const tgt = new THREE.Vector3();
+  const upd = () => {
+    cam.position.set(tgt.x + r * Math.sin(ph) * Math.sin(th), tgt.y + r * Math.cos(ph), tgt.z + r * Math.sin(ph) * Math.cos(th));
+    cam.lookAt(tgt); needsRender = true;
+  };
+  upd();
+  el.addEventListener('mousedown', e => { drag = true; lx = e.clientX; ly = e.clientY; });
+  window.addEventListener('mouseup', () => drag = false);
+  window.addEventListener('mousemove', e => {
+    if (!drag) return;
+    th += (e.clientX - lx) * 0.01; ph = Math.max(0.1, Math.min(Math.PI - 0.1, ph + (e.clientY - ly) * 0.01));
+    lx = e.clientX; ly = e.clientY; upd();
+  });
+  el.addEventListener('wheel', e => { r = Math.max(1, Math.min(30, r + e.deltaY * 0.01)); upd(); }, { passive: true });
+  el._upd = upd; el._getR = () => r; el._setR = v => { r = v; upd(); };
+}
+
+// ── BUILD DEMO GEOMETRIES ──────────────────────────────────────────────────
+function buildBracket() {
+  const group = new THREE.Group();
+  const mat = new THREE.MeshPhongMaterial({ color: 0x01c6f1, shininess: 80 });
+
+  // Main plate
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 2), mat);
+  plate.position.y = 0; group.add(plate);
+
+  // Two vertical walls
+  const wall1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.5, 2), mat);
+  wall1.position.set(-1.4, 0.85, 0); group.add(wall1);
+  const wall2 = wall1.clone(); wall2.position.x = 1.4; group.add(wall2);
+
+  // Bolt holes (cylinders cut-outs represented as dark cylinders)
+  const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.25, 16), new THREE.MeshPhongMaterial({ color: 0x0b0b14 }));
+  [-0.9, 0.9].forEach(x => [-0.6, 0.6].forEach(z => {
+    const h = hole.clone(); h.position.set(x, 0.13, z); group.add(h);
+  }));
+
+  // Gussets
+  const gussMat = new THREE.MeshPhongMaterial({ color: 0x1BD3D6, shininess: 60 });
+  const guss = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1, 0.3), gussMat);
+  [-0.6, 0.6].forEach(z => {
+    const g1 = guss.clone(); g1.position.set(-1.33, 0.5, z); group.add(g1);
+    const g2 = guss.clone(); g2.position.set(1.33, 0.5, z); group.add(g2);
+  });
+
+  return { mesh: group, tris: 2400 };
+}
+
+function buildAssembly() {
+  const group = new THREE.Group();
+  const mats = [
+    new THREE.MeshPhongMaterial({ color: 0x01c6f1, shininess: 80 }),
+    new THREE.MeshPhongMaterial({ color: 0x27DEC4, shininess: 60 }),
+    new THREE.MeshPhongMaterial({ color: 0x6aff7e, shininess: 70 }),
+    new THREE.MeshPhongMaterial({ color: 0x46EDA5, shininess: 50 }),
+  ];
+
+  // Base plate
+  group.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(4, 0.15, 3), mats[0]), { position: new THREE.Vector3(0, -0.1, 0) }));
+
+  // Central column
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.35, 2, 20), mats[1]);
+  col.position.set(0, 1.1, 0); group.add(col);
+
+  // Arm
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.2, 0.3), mats[2]);
+  arm.position.set(1.2, 2.2, 0); group.add(arm);
+
+  // End effector
+  const ee = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), mats[3]);
+  ee.position.set(2.5, 2.3, 0); group.add(ee);
+
+  // Bolts
+  const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.3, 8), new THREE.MeshPhongMaterial({ color: 0x888 }));
+  [[-1.5, -0.5], [-1.5, 1], [1.5, -0.5], [1.5, 1]].forEach(([x, z]) => {
+    const b = bolt.clone(); b.position.set(x, 0.2, z); group.add(b);
+  });
+
+  // Animate
+  group._t = 0;
+  group._animate = () => { group._t += 0.01; arm.rotation.y = Math.sin(group._t) * 0.3; ee.position.x = 2.5 + Math.sin(group._t * 2) * 0.1; needsRender = true; };
+
+  return { mesh: group, tris: 5800, animated: true };
+}
+
+// ── PREVIEW CONTROLS ───────────────────────────────────────────────────────
+let currentModel = null;
+
+function previewModel(type) {
+  document.getElementById('drawing-overlay').classList.remove('show');
+  document.getElementById('canvas-ph').style.display = 'none';
+  document.getElementById('toolbar').style.display = 'flex';
+
+  if (meshObj && scene) { scene.remove(meshObj); meshObj = null; }
+  if (animId) { clearInterval(animId); animId = null; }
+
+  const { mesh, tris, animated } = type === 'assembly' ? buildAssembly() : buildBracket();
+  meshObj = mesh;
+  scene.add(meshObj);
+  needsRender = true;
+
+  if (animated) animId = setInterval(mesh._animate, 16);
+
+  document.getElementById('preview-label').textContent = type === 'assembly' ? 'Assembly 1' : 'Body Frame';
+  document.getElementById('tri-count').textContent = tris.toLocaleString() + ' tris';
+  currentModel = type;
+
+  // Highlight element card
+  activeEl = type === 'assembly' ? 'as1' : 'ps1';
+  renderElements();
+}
+
+function previewDrawing() {
+  document.getElementById('drawing-overlay').classList.add('show');
+  document.getElementById('canvas-ph').style.display = 'none';
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('preview-label').textContent = 'Drawing 1 — PDF';
+  document.getElementById('tri-count').textContent = '';
+  if (animId) { clearInterval(animId); animId = null; }
+  activeEl = 'dw1';
+  renderElements();
+}
+
+function clearPreview() {
+  document.getElementById('drawing-overlay').classList.remove('show');
+  document.getElementById('canvas-ph').style.display = 'flex';
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('preview-label').textContent = 'No model loaded';
+  document.getElementById('tri-count').textContent = '';
+  if (meshObj && scene) { scene.remove(meshObj); meshObj = null; needsRender = true; }
+  if (animId) { clearInterval(animId); animId = null; }
+  activeEl = null;
+}
+
+function resetCam() {
+  camera.position.set(4, 3, 5); camera.lookAt(0, 0, 0); needsRender = true;
+}
+
+function fitCam() {
+  camera.position.set(3, 2.5, 4); camera.lookAt(0, 0.5, 0); needsRender = true;
+}
+
+function toggleWire() {
+  wireMode = !wireMode;
+  document.getElementById('btn-wire').classList.toggle('active', wireMode);
+  if (meshObj) meshObj.traverse(o => { if (o.isMesh && o.material) o.material.wireframe = wireMode; });
+  needsRender = true;
+}
+
+// ── SIMULATE EXPORT ────────────────────────────────────────────────────────
+function runExport() {
+  const card = document.getElementById('prog-card');
+  const fill = document.getElementById('prog-fill');
+  const label = document.getElementById('prog-label');
+  const pct = document.getElementById('prog-pct');
+
+  card.classList.add('show');
+  ELEMENTS.forEach(e => e.status = 'active');
+  renderElements();
+
+  let progress = 0;
+  const steps = [
+    { at: 15,  msg: 'Translating Part Studio…' },
+    { at: 35,  msg: 'Translating Assembly…' },
+    { at: 55,  msg: 'Translating Drawing…' },
+    { at: 75,  msg: 'Downloading files…' },
+    { at: 90,  msg: 'Creating ZIP…' },
+    { at: 100, msg: 'Complete ✓' },
+  ];
+
+  const tick = setInterval(() => {
+    progress = Math.min(100, progress + 1.2);
+    fill.style.width = progress + '%';
+    pct.textContent = Math.round(progress) + '%';
+
+    const step = steps.filter(s => progress >= s.at).pop();
+    if (step) label.textContent = step.msg;
+
+    // Update element statuses
+    if (progress > 30)  { const e = ELEMENTS.find(x => x.id === 'ps1'); if (e) e.status = 'done'; }
+    if (progress > 55)  { const e = ELEMENTS.find(x => x.id === 'as1'); if (e) e.status = 'done'; }
+    if (progress > 75)  { const e = ELEMENTS.find(x => x.id === 'dw1'); if (e) e.status = 'done'; }
+    renderElements();
+
+    if (progress >= 100) {
+      clearInterval(tick);
+      setTimeout(() => { card.classList.remove('show'); fill.style.width = '0%'; }, 2500);
+    }
+  }, 40);
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+renderSidebar();
+renderElements();
+initThree();
+
+// Auto-preview the bracket after a short delay
+setTimeout(() => {
+  previewModel('bracket');
+}, 600);
+</script>
+</body>
+</html>
