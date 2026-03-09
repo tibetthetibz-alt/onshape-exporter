@@ -383,7 +383,7 @@ app.get('/api/export/:did', requireAuth, async (req, res) => {
           archive.append(buf, { name: `${job.safeName}${suffix}.${ext}` });
         }
       } else {
-        archive.append('No result data from translation', { name: \`\${job.safeName}_ERROR.txt\` });
+        archive.append('No result data from translation', { name: job.safeName + '_ERROR.txt' });
       }
     }
 
