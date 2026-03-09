@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>OnExport</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -53,7 +53,7 @@
 html, body { height: 100%; }
 body {
   background: var(--bg); color: var(--text);
-  font-family: 'Inter', sans-serif; min-height: 100vh;
+  font-family: 'Syne', sans-serif; min-height: 100vh;
   transition: background var(--tr), color var(--tr);
 }
 
@@ -143,7 +143,7 @@ body {
 .hero p { font-size: 17px; color: var(--text2); line-height: 1.65; max-width: 440px; margin-bottom: 32px; }
 
 /* ── APP ── */
-#app-page { display: none; flex-direction: column; height: 100vh; overflow: hidden; }
+#app-page { display: none; flex-direction: column; height: 100vh; min-height: 0; overflow: hidden; }
 
 .app-nav {
   display: flex; align-items: center; justify-content: space-between;
@@ -165,7 +165,7 @@ body {
 }
 
 /* ── WORKSPACE ── */
-.workspace { display: grid; grid-template-columns: 260px 1fr 350px; flex: 1; overflow: hidden; }
+.workspace { display: grid; grid-template-columns: 260px 1fr 350px; flex: 1; min-height: 0; overflow: hidden; }
 
 /* ── SIDEBAR ── */
 .sidebar {
@@ -341,7 +341,7 @@ body {
 }
 .badge-PARTSTUDIO { background: rgba(1,198,241,0.1); color: var(--c2); }
 .badge-ASSEMBLY { background: rgba(27,211,214,0.1); color: var(--c3); }
-.badge-DRAWING { background: rgba(70,237,165,0.1); color: var(--c5); }
+.badge-DRAWING { background: rgba(180,120,255,0.15); color: #c084fc; }
 
 .el-name { font-size: 13px; font-weight: 500; flex: 1; cursor: pointer; }
 
@@ -363,14 +363,8 @@ body {
   display: flex; flex-direction: column; overflow: hidden;
   transition: background var(--tr);
 }
-.preview-header {
-  padding: 10px 14px; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.preview-lbl {
-  font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
-  text-transform: uppercase; color: var(--text3); font-family: 'DM Mono', monospace;
-}
+.preview-header { display: none; }
+.preview-lbl { display: none; }
 
 #canvas-wrap { flex: 1; position: relative; background: var(--bg); transition: background var(--tr); }
 #three-canvas { width: 100%; height: 100%; display: block; }
@@ -507,6 +501,8 @@ optgroup { color: var(--text3); font-size: 11px; }
           <input type="text" id="search-input" placeholder="Search…" />
         </div>
       </div>
+      <!-- Projects / folder tabs -->
+      <div id="project-tabs" style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 12px;border-bottom:1px solid var(--border);"></div>
       <div id="folder-filter" class="folder-filter" style="display:none"></div>
       <div class="doc-list" id="doc-list">
         <div style="padding:18px;text-align:center;color:var(--text3)"><div class="spin"></div></div>
@@ -545,7 +541,7 @@ optgroup { color: var(--text3); font-size: 11px; }
               </select>
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
-              <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap;">DWG</span>
+              <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap;">DRW</span>
               <select class="format-select" id="format-dwg">
                 <option value="PDF">PDF (.pdf)</option>
                 <option value="DWG">DWG (.dwg)</option>
@@ -598,10 +594,7 @@ optgroup { color: var(--text3); font-size: 11px; }
 
     <!-- 3D PREVIEW -->
     <div class="preview-panel">
-      <div class="preview-header">
-        <span class="preview-lbl">3D Preview</span>
-        <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace" id="preview-hint">Export STL to preview</span>
-      </div>
+      <span id="preview-hint" style="display:none"></span>
       <div id="canvas-wrap">
         <canvas id="three-canvas"></canvas>
         <div class="canvas-ph" id="canvas-ph">
@@ -665,7 +658,7 @@ async function init() {
     document.getElementById('landing-page').style.display = 'none';
     const ap = document.getElementById('app-page');
     ap.style.display = 'flex'; ap.style.flexDirection = 'column';
-    loadUser(); loadDocs(); initThree();
+    loadUser(); loadDocs(); loadProjects(); initThree();
   }
 }
 
@@ -697,11 +690,35 @@ document.addEventListener('DOMContentLoaded', () => {
 let allDocs = [];
 let activeFolder = null;
 
+let activeProject = null; // null = My Documents
+
+async function loadProjects() {
+  try {
+    const r = await fetch('/api/projects');
+    const data = await r.json();
+    const projects = data.items || [];
+    const tabs = document.getElementById('project-tabs');
+    tabs.innerHTML = `<button class="folder-chip active" onclick="switchProject(null, this)">My Docs</button>` +
+      projects.map(p => `<button class="folder-chip" onclick="switchProject('${p.id}',this)">${esc(p.name)}</button>`).join('');
+  } catch { /* projects optional */ }
+}
+
+function switchProject(pid, btn) {
+  activeProject = pid;
+  document.querySelectorAll('#project-tabs .folder-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFolder = null;
+  loadDocs(document.getElementById('search-input').value);
+}
+
 async function loadDocs(q = '') {
   const list = document.getElementById('doc-list');
   list.innerHTML = '<div style="padding:18px;text-align:center;color:var(--text3)"><div class="spin"></div></div>';
   try {
-    const r = await fetch(`/api/documents?q=${encodeURIComponent(q)}&limit=20`);
+    const url = activeProject
+      ? `/api/projects/${activeProject}/documents?q=${encodeURIComponent(q)}`
+      : `/api/documents?q=${encodeURIComponent(q)}&limit=20`;
+    const r = await fetch(url);
     const data = await r.json();
     allDocs = data.items || [];
     buildFolderFilter(allDocs);
@@ -748,6 +765,10 @@ function renderDocList(docs) {
 }
 
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtType(t) {
+  const m = { PARTSTUDIO:'PART STUDIO', ASSEMBLY:'ASSEMBLY', DRAWING:'DRAWING', BILLOFMATERIALS:'BOM' };
+  return m[t] || t;
+}
 function ago(iso) {
   if (!iso) return '';
   const s = (Date.now() - new Date(iso)) / 1000;
@@ -806,7 +827,7 @@ async function selectDoc(did, name) {
     grid.innerHTML = els.map(el => `
       <div class="el-card selected" id="el-${el.id}" onclick="autoPreview(${JSON.stringify(el).replace(/"/g,'&quot;')})">
         <div class="el-check checked" id="chk-${el.id}" onclick="event.stopPropagation();toggleEl('${el.id}')"></div>
-        <span class="el-badge badge-${el.elementType}">${el.elementType}</span>
+        <span class="el-badge badge-${el.elementType}">${fmtType(el.elementType)}</span>
         <span class="el-name">${esc(el.name)}</span>
         <span class="el-status" id="status-${el.id}"><span class="dot waiting"></span><span>waiting</span></span>
       </div>`).join('');
@@ -889,8 +910,14 @@ function startExport() {
     const msg = JSON.parse(ev.data);
     if (msg.type === 'start') { totalEls = msg.total; setProgress(0, `0 of ${totalEls} translated`, ''); }
     if (msg.type === 'progress') {
-      const el = document.querySelector(`#el-list .el-card:nth-child(${msg.index+1}) .el-status`);
-      if (el) el.innerHTML = `<span class="dot ${msg.status}"></span><span>${msg.status}</span>`;
+      // Match by element name (index-based matching breaks with parallel + filtered lists)
+      const allCards = document.querySelectorAll('#el-list .el-card');
+      let statusEl = null;
+      allCards.forEach(card => {
+        const nameEl = card.querySelector('.el-name');
+        if (nameEl && nameEl.textContent === msg.name) statusEl = card.querySelector('.el-status');
+      });
+      if (statusEl) statusEl.innerHTML = `<span class="dot ${msg.status}"></span><span>${msg.status}</span>`;
       if (msg.status === 'done' || msg.status === 'failed') {
         doneEls++;
         setProgress(Math.round(doneEls/totalEls*100), `${doneEls} of ${totalEls} translated`, msg.name);
@@ -934,12 +961,14 @@ function setProgress(pct, label, detail) {
 // 3D PREVIEW
 // ══════════════════════════════════════
 let renderer, scene, camera, orb, meshObj, wireMode = false;
+let needsRender = true; // on-demand rendering flag
 
 function initThree() {
   const wrap = document.getElementById('canvas-wrap');
   const canvas = document.getElementById('three-canvas');
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(window.devicePixelRatio);
+  // antialias: false for speed; cap pixelRatio at 1.5
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   const dark = theme === 'dark';
   renderer.setClearColor(dark ? 0x0b0b14 : 0xf4f4fb, 1);
   resize3d();
@@ -949,7 +978,7 @@ function initThree() {
 
   const grid = new THREE.GridHelper(30, 30, dark ? 0x252540 : 0xdcdcf0, dark ? 0x1a1a30 : 0xe8e8f8);
   grid.position.y = -1; scene.add(grid);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
   const d1 = new THREE.DirectionalLight(0x01c6f1, 1.0); d1.position.set(5,10,5); scene.add(d1);
   const d2 = new THREE.DirectionalLight(0x6aff7e, 0.4); d2.position.set(-5,5,-5); scene.add(d2);
   const d3 = new THREE.DirectionalLight(0xffffff, 0.3); d3.position.set(0,-5,0); scene.add(d3);
@@ -958,7 +987,11 @@ function initThree() {
   orb = makeOrbit(camera, canvas);
 
   window.addEventListener('resize', resize3d);
-  (function loop() { requestAnimationFrame(loop); renderer.render(scene, camera); })();
+  // On-demand render loop — only re-renders when flagged
+  (function loop() {
+    requestAnimationFrame(loop);
+    if (needsRender) { renderer.render(scene, camera); needsRender = false; }
+  })();
 }
 
 function resize3d() {
@@ -966,12 +999,13 @@ function resize3d() {
   if (!renderer || !w) return;
   renderer.setSize(w.clientWidth, w.clientHeight, false);
   if (camera) { camera.aspect = w.clientWidth/w.clientHeight; camera.updateProjectionMatrix(); }
+  needsRender = true;
 }
 
 function makeOrbit(cam, el) {
   let drag=false, lx=0, ly=0, th=0.8, ph=0.8, r=6;
   const tgt = new THREE.Vector3();
-  const upd = () => { cam.position.set(tgt.x+r*Math.sin(ph)*Math.sin(th),tgt.y+r*Math.cos(ph),tgt.z+r*Math.sin(ph)*Math.cos(th)); cam.lookAt(tgt); };
+  const upd = () => { cam.position.set(tgt.x+r*Math.sin(ph)*Math.sin(th),tgt.y+r*Math.cos(ph),tgt.z+r*Math.sin(ph)*Math.cos(th)); cam.lookAt(tgt); needsRender=true; };
   upd();
   el.addEventListener('mousedown', e=>{ drag=true; lx=e.clientX; ly=e.clientY; });
   window.addEventListener('mouseup', ()=>drag=false);

@@ -110,14 +110,40 @@ app.get('/api/user', requireAuth, async (req, res) => {
 app.get('/api/documents', requireAuth, async (req, res) => {
   try {
     await refreshIfNeeded(req);
-    const { q = '', offset = 0, limit = 50 } = req.query;
-    console.log('Fetching docs, token exists:', !!req.session.accessToken);
+    const { q = '', offset = 0, limit = 20 } = req.query;
+    const token = req.session.accessToken;
     const params = { sortColumn: 'modifiedAt', sortOrder: 'desc', offset, limit, filter: 0 };
     if (q) params.q = q;
-    const r = await axios.get(`${ONSHAPE_BASE}/api/v10/documents`, {
-      params,
-      headers: onshapeHeaders(req.session.accessToken)
-    });
+    const r = await axios.get(`${ONSHAPE_BASE}/api/v10/documents`, { params, headers: onshapeHeaders(token) });
+    res.json(r.data);
+  } catch (e) {
+    res.status(500).json({ error: e.response?.data || e.message });
+  }
+});
+
+// Fetch user's projects (folders)
+app.get('/api/projects', requireAuth, async (req, res) => {
+  try {
+    await refreshIfNeeded(req);
+    const token = req.session.accessToken;
+    // Onshape calls them "global folders" / projects
+    const r = await axios.get(`${ONSHAPE_BASE}/api/v10/globalfolders/home`, { headers: onshapeHeaders(token) });
+    res.json(r.data);
+  } catch (e) {
+    res.status(500).json({ error: e.response?.data || e.message });
+  }
+});
+
+// Fetch documents inside a project folder
+app.get('/api/projects/:fid/documents', requireAuth, async (req, res) => {
+  try {
+    await refreshIfNeeded(req);
+    const token = req.session.accessToken;
+    const { fid } = req.params;
+    const { q = '' } = req.query;
+    const params = { sortColumn: 'modifiedAt', sortOrder: 'desc', limit: 20, filter: 0, parentId: fid };
+    if (q) params.q = q;
+    const r = await axios.get(`${ONSHAPE_BASE}/api/v10/documents`, { params, headers: onshapeHeaders(token) });
     res.json(r.data);
   } catch (e) {
     res.status(500).json({ error: e.response?.data || e.message });
