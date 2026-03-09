@@ -4,202 +4,137 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>OnExport — Live Demo</title>
-<link rel="icon" type="image/png" href="/logo.png"/>
+<link rel="icon" type="image/png" href="/logo-dark.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
-let theme = 'dark';
-function toggleTheme() {
-  theme = theme === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
-  document.getElementById('nav-logo').src = theme === 'dark' ? '/logo-dark.png' : '/logo-light.png';
-  if (renderer) {
-    const bg = theme === 'dark' ? 0x0b0b14 : 0xf4f4fb;
-    renderer.setClearColor(bg);
-    if (scene) scene.background = new THREE.Color(bg);
-    needsRender = true;
-  }
-}
-
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --c1: #00007E; --c2: #01c6f1; --c3: #1BD3D6;
-  --c4: #27DEC4; --c5: #46EDA5; --c6: #6aff7e;
-  --radius: 10px; --tr: 0.15s ease;
-}
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+:root { --c1:#00007E; --c2:#01c6f1; --c3:#1BD3D6; --c4:#27DEC4; --c5:#46EDA5; --c6:#6aff7e; }
 [data-theme="dark"] {
-  --bg: #0b0b14; --bg2: #111120; --surface: #17172a;
-  --surface2: #1f1f36; --border: #252540;
-  --text: #f0f0ff; --text2: #9090b8; --text3: #50507a;
-  --hi: var(--c2);
+  --bg:#0b0b14; --bg2:#111120; --surface:#17172a; --surface2:#1f1f36;
+  --border:#252540; --text:#f0f0ff; --text2:#9090b8; --text3:#50507a;
 }
 [data-theme="light"] {
-  --bg: #ffffff; --bg2: #f4f4fb; --surface: #ffffff;
-  --surface2: #ececf8; --border: #dcdcf0;
-  --text: #0a0a1a; --text2: #44446a; --text3: #9999c0;
-  --hi: var(--c2);
+  --bg:#ffffff; --bg2:#f4f4fb; --surface:#ffffff; --surface2:#ececf8;
+  --border:#dcdcf0; --text:#0a0a1a; --text2:#44446a; --text3:#9999c0;
 }
+html,body { height:100%; overflow:hidden; }
+body { background:var(--bg); color:var(--text); font-family:'Syne',sans-serif; transition:background 0.2s,color 0.2s; }
 
-html, body { height: 100%; }
-body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; overflow: hidden; }
+/* NAV */
+.nav { height:48px; display:flex; align-items:center; justify-content:space-between; padding:0 20px; border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0; z-index:50; }
+.logo { display:flex; align-items:center; gap:9px; font-size:15px; font-weight:700; color:var(--text); text-decoration:none; }
+.logo-icon { width:26px; height:26px; border-radius:6px; overflow:hidden; flex-shrink:0; }
+.logo-icon img { width:100%; height:100%; object-fit:contain; }
+.demo-badge { padding:3px 10px; border-radius:20px; background:rgba(1,198,241,0.1); border:1px solid rgba(1,198,241,0.3); color:var(--c2); font-size:10px; font-family:'DM Mono',monospace; letter-spacing:1px; text-transform:uppercase; }
+.nav-right { display:flex; align-items:center; gap:8px; }
+.user-chip { display:flex; align-items:center; gap:7px; padding:4px 10px 4px 4px; border-radius:20px; background:var(--surface); border:1px solid var(--border); font-size:13px; }
+.avatar { width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,var(--c2),var(--c5)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#000; }
+.nav-btn { background:none; border:1px solid var(--border); color:var(--text2); padding:5px 12px; border-radius:8px; font-family:'DM Mono',monospace; font-size:11px; cursor:pointer; transition:all 0.15s; }
+.nav-btn:hover { border-color:var(--text2); color:var(--text); }
+.btn-back { padding:6px 14px; border-radius:8px; background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.3); color:#f87171; font-size:13px; font-family:'Syne',sans-serif; cursor:pointer; text-decoration:none; }
 
-/* ── NAV ── */
-.nav {
-  height: 48px; display: flex; align-items: center; justify-content: space-between;
-  padding: 0 20px; border-bottom: 1px solid var(--border);
-  background: var(--bg2); flex-shrink: 0; position: relative; z-index: 50;
-}
-.logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; color: var(--text); text-decoration: none; }
-.logo-icon { width: 26px; height: 26px; border-radius: 6px; background: transparent; overflow: hidden; flex-shrink: 0; }
-.logo-icon img { width: 100%; height: 100%; object-fit: contain; }
-.demo-badge {
-  padding: 3px 10px; border-radius: 20px;
-  background: rgba(1,198,241,0.1); border: 1px solid rgba(1,198,241,0.3);
-  color: var(--c2); font-size: 10px; font-family: 'DM Mono', monospace;
-  letter-spacing: 1px; text-transform: uppercase;
-}
-.nav-right { display: flex; align-items: center; gap: 10px; }
-.user-chip {
-  display: flex; align-items: center; gap: 7px;
-  padding: 4px 10px 4px 4px; border-radius: 20px;
-  background: var(--surface); border: 1px solid var(--border); font-size: 13px;
-}
-.avatar {
-  width: 24px; height: 24px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--c2), var(--c5));
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: #000;
-}
-.btn-danger { padding: 6px 14px; border-radius: 8px; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: #f87171; font-size: 13px; font-family: 'Syne', sans-serif; cursor: pointer; }
+/* LAYOUT */
+.shell { display:flex; flex-direction:column; height:100vh; }
+.workspace { display:grid; grid-template-columns:240px 1fr 360px; flex:1; min-height:0; overflow:hidden; }
 
-/* ── LAYOUT ── */
-.shell { display: flex; flex-direction: column; height: 100vh; }
-.workspace { display: grid; grid-template-columns: 240px 1fr 360px; flex: 1; min-height: 0; overflow: hidden; }
+/* SIDEBAR */
+.sidebar { border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; background:var(--bg2); }
+.sidebar-top { padding:14px 12px 10px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.sidebar-label { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text3); font-family:'DM Mono',monospace; margin-bottom:8px; }
+.search { display:flex; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:7px 10px; }
+.search input { background:none; border:none; outline:none; color:var(--text); font-family:'DM Mono',monospace; font-size:12px; width:100%; }
+.doc-list { flex:1; overflow-y:auto; padding:6px 0; }
+.doc-item { padding:9px 14px; cursor:pointer; border-left:2px solid transparent; transition:all 0.12s; }
+.doc-item:hover { background:var(--surface2); }
+.doc-item.active { background:var(--surface2); border-left-color:var(--c2); }
+.doc-name { font-size:13px; font-weight:500; color:var(--text); }
+.doc-meta { font-size:11px; color:var(--text3); font-family:'DM Mono',monospace; margin-top:2px; }
 
-/* ── SIDEBAR ── */
-.sidebar { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; background: var(--bg2); }
-.sidebar-top { padding: 14px 12px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.sidebar-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); font-family: 'DM Mono', monospace; margin-bottom: 8px; }
-.search { display: flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; }
-.search input { background: none; border: none; outline: none; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; width: 100%; }
-.doc-list { flex: 1; overflow-y: auto; padding: 6px 0; }
-.doc-item { padding: 9px 14px; cursor: pointer; border-left: 2px solid transparent; transition: all 0.12s; }
-.doc-item:hover { background: var(--surface2); }
-.doc-item.active { background: var(--surface2); border-left-color: var(--c2); }
-.doc-name { font-size: 13px; font-weight: 500; color: var(--text); }
-.doc-meta { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+/* MAIN */
+.main-panel { display:flex; flex-direction:column; overflow:hidden; background:var(--bg); }
+.doc-header { padding:16px 22px 14px; border-bottom:1px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.doc-title { font-size:18px; font-weight:700; }
+.export-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.format-select { background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:7px 10px; font-family:'DM Mono',monospace; font-size:12px; outline:none; }
+.label-sm { font-size:10px; color:var(--text3); font-family:'DM Mono',monospace; }
+.btn-export { padding:8px 20px; border-radius:10px; border:none; background:linear-gradient(90deg,var(--c2),var(--c4)); color:#000; font-family:'Syne',sans-serif; font-size:13px; font-weight:700; cursor:pointer; }
+.elements-section { padding:16px 22px; flex:1; overflow-y:auto; }
+.elements-label { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text3); font-family:'DM Mono',monospace; margin-bottom:10px; }
+.select-all-row { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; margin-bottom:6px; background:var(--surface); border-radius:8px; border:1px solid var(--border); font-size:13px; color:var(--text2); }
+.el-card { display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:10px; border:1px solid var(--border); margin-bottom:6px; background:var(--surface); cursor:pointer; transition:border-color 0.15s,box-shadow 0.12s; }
+.el-card:hover { border-color:var(--c2); box-shadow:0 0 0 1px rgba(1,198,241,0.15); }
+.el-card.active-preview { border-color:var(--c2); box-shadow:0 0 0 2px rgba(1,198,241,0.2); }
+.check { width:16px; height:16px; border-radius:4px; border:1.5px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.check.on { background:var(--c2); border-color:var(--c2); }
+.check.on::after { content:'✓'; font-size:10px; color:#000; font-weight:700; }
+.el-badge { font-size:9px; padding:2px 7px; border-radius:4px; font-family:'DM Mono',monospace; font-weight:500; letter-spacing:0.5px; white-space:nowrap; }
+.badge-PS { background:rgba(1,198,241,0.1); color:var(--c2); }
+.badge-AS { background:rgba(27,211,214,0.1); color:var(--c3); }
+.badge-DW { background:rgba(180,120,255,0.15); color:#c084fc; }
+.el-name { flex:1; font-size:13px; font-weight:500; }
+.dot-status { display:flex; align-items:center; gap:5px; font-size:11px; font-family:'DM Mono',monospace; }
+.dot { width:7px; height:7px; border-radius:50%; }
+.dot.waiting { background:var(--text3); }
+.dot.done { background:var(--c6); }
+.dot.active { background:var(--c2); animation:pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.progress-card { margin:0 22px 12px; padding:12px 16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; display:none; }
+.progress-card.show { display:block; }
+.progress-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:12px; }
+.prog-track { height:4px; background:var(--surface2); border-radius:2px; overflow:hidden; }
+.prog-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--c2),var(--c5)); transition:width 0.4s ease; }
 
-/* ── MAIN PANEL ── */
-.main-panel { display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
-.doc-header { padding: 16px 22px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.doc-title { font-size: 18px; font-weight: 700; }
-.export-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.format-select { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 7px 10px; font-family: 'DM Mono', monospace; font-size: 12px; outline: none; }
-.label-sm { font-size: 10px; color: var(--text3); font-family: 'DM Mono', monospace; }
-.btn-export { padding: 8px 20px; border-radius: 10px; border: none; background: linear-gradient(90deg, var(--c2), var(--c4)); color: #000; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+/* PREVIEW */
+.preview-panel { border-left:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; background:var(--bg2); position:relative; }
+#canvas-wrap { flex:1; position:relative; min-height:0; }
+canvas { display:block; width:100%; height:100%; }
+.preview-toolbar { position:absolute; bottom:44px; left:50%; transform:translateX(-50%); display:flex; gap:6px; background:rgba(17,17,32,0.88); backdrop-filter:blur(8px); border:1px solid var(--border); border-radius:10px; padding:5px 8px; }
+[data-theme="light"] .preview-toolbar { background:rgba(244,244,251,0.92); }
+.tool-btn { padding:5px 12px; border-radius:6px; border:none; background:transparent; color:var(--text2); font-family:'DM Mono',monospace; font-size:11px; cursor:pointer; transition:all 0.12s; }
+.tool-btn:hover,.tool-btn.active { background:var(--surface2); color:var(--text); }
+.preview-footer { position:absolute; bottom:0; left:0; right:0; padding:8px 14px; font-size:10px; font-family:'DM Mono',monospace; color:var(--text3); border-top:1px solid var(--border); background:var(--bg2); display:flex; justify-content:space-between; }
+.drawing-overlay { position:absolute; inset:0; background:#f0f0f0; display:none; align-items:center; justify-content:center; }
+.drawing-overlay.show { display:flex; }
+.drawing-overlay iframe { width:100%; height:100%; border:none; }
+.canvas-ph { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:var(--text3); font-size:13px; pointer-events:none; }
 
-.elements-section { padding: 16px 22px; flex: 1; overflow-y: auto; }
-.elements-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); font-family: 'DM Mono', monospace; margin-bottom: 10px; }
+/* WALKTHROUGH */
+.wt-overlay { position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; }
+.wt-overlay.show { display:flex; }
+.wt-card { background:var(--bg2); border:1px solid var(--border); border-radius:20px; width:min(560px,calc(100vw - 40px)); position:relative; overflow:hidden; }
+.wt-progress-bar { height:3px; background:var(--surface2); }
+.wt-progress-fill { height:100%; background:linear-gradient(90deg,var(--c2),var(--c5)); transition:width 0.4s ease; }
+.wt-body { padding:36px 36px 28px; }
+.wt-step-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; font-family:'DM Mono',monospace; color:var(--c2); margin-bottom:10px; }
+.wt-title { font-size:22px; font-weight:800; margin-bottom:10px; line-height:1.2; }
+.wt-desc { font-size:14px; color:var(--text2); line-height:1.7; margin-bottom:24px; }
+.wt-highlight { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:24px; display:flex; align-items:flex-start; gap:12px; }
+.wt-hl-icon { width:36px; height:36px; border-radius:10px; background:rgba(1,198,241,0.1); border:1px solid rgba(1,198,241,0.2); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:15px; font-family:'DM Mono',monospace; font-weight:700; color:var(--c2); }
+.wt-hl-text { font-size:13px; color:var(--text2); line-height:1.6; }
+.wt-hl-text strong { color:var(--text); display:block; margin-bottom:3px; }
+.wt-footer { display:flex; align-items:center; justify-content:space-between; }
+.wt-dots { display:flex; gap:6px; }
+.wt-dot { width:7px; height:7px; border-radius:50%; background:var(--surface2); transition:all 0.2s; cursor:pointer; }
+.wt-dot.active { background:var(--c2); width:20px; border-radius:4px; }
+.wt-nav { display:flex; gap:8px; }
+.wt-btn { padding:9px 20px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text2); font-family:'Syne',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
+.wt-btn:hover { border-color:var(--text2); color:var(--text); }
+.wt-btn.primary { background:linear-gradient(90deg,var(--c2),var(--c4)); color:#000; border:none; }
+.wt-close { position:absolute; top:14px; right:14px; width:30px; height:30px; border-radius:50%; background:var(--surface2); border:none; color:var(--text2); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 
-.select-all-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; margin-bottom: 6px; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); font-size: 13px; color: var(--text2); }
-.count-badge { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3); }
-
-.el-card {
-  display: flex; align-items: center; gap: 10px;
-  padding: 11px 14px; border-radius: 10px;
-  border: 1px solid var(--border); margin-bottom: 6px;
-  background: var(--surface); cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.12s;
-}
-.el-card:hover { border-color: var(--c2); box-shadow: 0 0 0 1px rgba(1,198,241,0.15); }
-.el-card.active-preview { border-color: var(--c2); box-shadow: 0 0 0 2px rgba(1,198,241,0.2); }
-
-.check { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
-.check.on { background: var(--c2); border-color: var(--c2); }
-.check.on::after { content: '✓'; font-size: 10px; color: #000; font-weight: 700; }
-
-.el-badge { font-size: 9px; padding: 2px 7px; border-radius: 4px; font-family: 'DM Mono', monospace; font-weight: 500; letter-spacing: 0.5px; white-space: nowrap; }
-.badge-PS { background: rgba(1,198,241,0.1); color: var(--c2); }
-.badge-AS { background: rgba(27,211,214,0.1); color: var(--c3); }
-.badge-DW { background: rgba(180,120,255,0.15); color: #c084fc; }
-
-.el-name { flex: 1; font-size: 13px; font-weight: 500; }
-.dot-status { display: flex; align-items: center; gap: 5px; font-size: 11px; font-family: 'DM Mono', monospace; }
-.dot { width: 7px; height: 7px; border-radius: 50%; }
-.dot.waiting { background: var(--text3); }
-.dot.done { background: var(--c6); }
-.dot.active { background: var(--c2); animation: pulse 1s infinite; }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-/* Progress */
-.progress-card { margin: 0 22px 12px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: none; }
-.progress-card.show { display: block; }
-.progress-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; }
-.prog-track { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
-.prog-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--c2), var(--c5)); transition: width 0.4s ease; }
-
-/* ── PREVIEW PANEL ── */
-.preview-panel { border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; background: var(--bg2); position: relative; }
-#canvas-wrap { flex: 1; position: relative; min-height: 0; }
-canvas { display: block; width: 100%; height: 100%; }
-
-.preview-toolbar {
-  position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%);
-  display: flex; gap: 6px; background: rgba(17,17,32,0.85);
-  backdrop-filter: blur(8px); border: 1px solid var(--border);
-  border-radius: 10px; padding: 5px 8px;
-}
-.tool-btn { padding: 5px 12px; border-radius: 6px; border: none; background: transparent; color: var(--text2); font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; transition: all 0.12s; }
-.tool-btn:hover, .tool-btn.active { background: var(--surface2); color: var(--text); }
-
-.preview-footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 8px 14px; font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text3); border-top: 1px solid var(--border); background: var(--bg2); display: flex; justify-content: space-between; }
-
-/* Drawing preview overlay */
-.drawing-overlay {
-  position: absolute; inset: 0;
-  background: #fff;
-  display: none; flex-direction: column; align-items: center; justify-content: center;
-  overflow: auto;
-}
-.drawing-overlay.show { display: flex; }
-.drawing-svg { width: 90%; max-width: 340px; }
-
-/* ── DEMO CONTROLS ── */
-.demo-controls {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-  background: rgba(17,17,32,0.92); backdrop-filter: blur(12px);
-  border: 1px solid var(--border); border-radius: 14px;
-  padding: 10px 16px; display: flex; align-items: center; gap: 12px;
-  font-size: 12px; color: var(--text2); z-index: 100;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-}
-.demo-btn {
-  padding: 7px 16px; border-radius: 8px; border: none;
-  background: var(--surface2); color: var(--text);
-  font-family: 'Syne', sans-serif; font-size: 12px; cursor: pointer;
-  transition: all 0.12s; white-space: nowrap;
-}
-.demo-btn:hover { background: var(--border); }
-.demo-btn.primary { background: linear-gradient(90deg, var(--c2), var(--c4)); color: #000; font-weight: 700; }
-.demo-sep { width: 1px; height: 20px; background: var(--border); }
-
-/* Canvas placeholder */
-.canvas-ph {
-  position: absolute; inset: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 10px;
-  color: var(--text3); font-size: 13px; pointer-events: none;
-}
-.canvas-ph svg { opacity: 0.3; }
+/* DEMO CONTROLS */
+.demo-controls { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(17,17,32,0.92); backdrop-filter:blur(12px); border:1px solid var(--border); border-radius:14px; padding:10px 16px; display:flex; align-items:center; gap:10px; z-index:100; box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+[data-theme="light"] .demo-controls { background:rgba(244,244,251,0.96); box-shadow:0 8px 32px rgba(0,0,0,0.12); }
+.demo-btn { padding:7px 16px; border-radius:8px; border:none; background:var(--surface2); color:var(--text); font-family:'Syne',sans-serif; font-size:12px; cursor:pointer; transition:all 0.12s; white-space:nowrap; }
+.demo-btn:hover { background:var(--border); }
+.demo-btn.primary { background:linear-gradient(90deg,var(--c2),var(--c4)); color:#000; font-weight:700; }
+.demo-sep { width:1px; height:20px; background:var(--border); }
 </style>
 </head>
 <body>
 <div class="shell">
-
-  <!-- NAV -->
   <nav class="nav">
     <a href="/" class="logo">
       <div class="logo-icon"><img id="nav-logo" src="/logo-dark.png" alt=""/></div>
@@ -207,25 +142,20 @@ canvas { display: block; width: 100%; height: 100%; }
     </a>
     <span class="demo-badge">Demo Mode</span>
     <div class="nav-right">
-      <button onclick="toggleTheme()" id="theme-btn" style="background:none;border:1px solid var(--border);color:var(--text2);padding:5px 10px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all 0.15s;">☀ Light</button>
-      <div class="user-chip">
-        <div class="avatar">T</div>
-        Tibet Asikoglu
-      </div>
-      <a href="/" class="btn-danger">← Back</a>
+      <button class="nav-btn" id="theme-btn" onclick="toggleTheme()">Light</button>
+      <div class="user-chip"><div class="avatar">T</div>Tibet Asikoglu</div>
+      <a href="/" class="btn-back">Back</a>
     </div>
   </nav>
 
-  <!-- WORKSPACE -->
   <div class="workspace">
-
     <!-- SIDEBAR -->
     <div class="sidebar">
       <div class="sidebar-top">
         <div class="sidebar-label">Documents</div>
         <div class="search">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input type="text" placeholder="Search…" value=""/>
+          <input type="text" placeholder="Search…"/>
         </div>
       </div>
       <div class="doc-list" id="doc-list"></div>
@@ -234,27 +164,15 @@ canvas { display: block; width: 100%; height: 100%; }
     <!-- MAIN -->
     <div class="main-panel">
       <div class="doc-header">
-        <div class="doc-title" id="doc-title">Mechanical Assembly v3</div>
+        <div class="doc-title">Wood Working Project</div>
         <div class="export-bar">
           <span class="label-sm">3D</span>
-          <select class="format-select" id="fmt-3d">
-            <option>STEP (.step)</option>
-            <option>STL (.stl)</option>
-            <option>IGES (.igs)</option>
-            <option>OBJ (.obj)</option>
-            <option>GLTF (.glb)</option>
-          </select>
+          <select class="format-select"><option>STEP (.step)</option><option>STL (.stl)</option><option>IGES (.igs)</option><option>OBJ (.obj)</option></select>
           <span class="label-sm">DRW</span>
-          <select class="format-select" id="fmt-drw">
-            <option>PDF (.pdf)</option>
-            <option>DWG (.dwg)</option>
-            <option>DXF (.dxf)</option>
-            <option>SVG (.svg)</option>
-          </select>
-          <button class="btn-export" id="export-btn" onclick="runExport()">Export 3 files</button>
+          <select class="format-select"><option>PDF (.pdf)</option><option>DWG (.dwg)</option><option>DXF (.dxf)</option></select>
+          <button class="btn-export" onclick="runExport()">Export 4 files</button>
         </div>
       </div>
-
       <div class="progress-card" id="prog-card">
         <div class="progress-row">
           <span id="prog-label" style="color:var(--text2);font-family:'DM Mono',monospace;font-size:12px;">Translating…</span>
@@ -262,13 +180,9 @@ canvas { display: block; width: 100%; height: 100%; }
         </div>
         <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
       </div>
-
       <div class="elements-section">
         <div class="elements-label">Elements</div>
-        <div class="select-all-row">
-          <span>Select all</span>
-          <span class="count-badge" id="sel-count">3 selected</span>
-        </div>
+        <div class="select-all-row"><span>Select all</span><span class="count-badge">4 selected</span></div>
         <div id="el-list"></div>
       </div>
     </div>
@@ -278,64 +192,16 @@ canvas { display: block; width: 100%; height: 100%; }
       <div id="canvas-wrap">
         <canvas id="three-canvas"></canvas>
         <div class="canvas-ph" id="canvas-ph">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-          </svg>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
           <span>Click an element to preview</span>
         </div>
-
-        <!-- Drawing overlay -->
         <div class="drawing-overlay" id="drawing-overlay">
-          <svg class="drawing-svg" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
-            <!-- Title block -->
-            <rect width="400" height="300" fill="#fff"/>
-            <!-- Border -->
-            <rect x="5" y="5" width="390" height="290" fill="none" stroke="#333" stroke-width="1.5"/>
-            <rect x="10" y="10" width="380" height="280" fill="none" stroke="#333" stroke-width="0.5"/>
-            <!-- Main part - top view -->
-            <rect x="40" y="30" width="160" height="120" fill="none" stroke="#222" stroke-width="1.5"/>
-            <rect x="60" y="50" width="40" height="30" fill="none" stroke="#444" stroke-width="0.7" stroke-dasharray="4,2"/>
-            <rect x="130" y="50" width="40" height="30" fill="none" stroke="#444" stroke-width="0.7" stroke-dasharray="4,2"/>
-            <!-- Centre lines -->
-            <line x1="120" y1="20" x2="120" y2="165" stroke="#aaa" stroke-width="0.5" stroke-dasharray="8,3,2,3"/>
-            <line x1="25" y1="90" x2="215" y2="90" stroke="#aaa" stroke-width="0.5" stroke-dasharray="8,3,2,3"/>
-            <!-- Holes -->
-            <circle cx="80" cy="65" r="10" fill="none" stroke="#222" stroke-width="1"/>
-            <circle cx="150" cy="65" r="10" fill="none" stroke="#222" stroke-width="1"/>
-            <circle cx="120" cy="90" r="15" fill="none" stroke="#222" stroke-width="1.5"/>
-            <!-- Side view -->
-            <rect x="240" y="30" width="80" height="120" fill="none" stroke="#222" stroke-width="1.5"/>
-            <line x1="240" y1="50" x2="320" y2="50" stroke="#444" stroke-width="0.7"/>
-            <line x1="240" y1="130" x2="320" y2="130" stroke="#444" stroke-width="0.7"/>
-            <!-- Dimension lines -->
-            <line x1="40" y1="168" x2="200" y2="168" stroke="#555" stroke-width="0.7"/>
-            <line x1="40" y1="164" x2="40" y2="172" stroke="#555" stroke-width="0.7"/>
-            <line x1="200" y1="164" x2="200" y2="172" stroke="#555" stroke-width="0.7"/>
-            <text x="120" y="178" text-anchor="middle" font-size="8" fill="#333" font-family="monospace">160.00</text>
-            <line x1="215" y1="30" x2="215" y2="150" stroke="#555" stroke-width="0.7"/>
-            <line x1="211" y1="30" x2="219" y2="30" stroke="#555" stroke-width="0.7"/>
-            <line x1="211" y1="150" x2="219" y2="150" stroke="#555" stroke-width="0.7"/>
-            <text x="224" y="94" text-anchor="start" font-size="8" fill="#333" font-family="monospace">120.00</text>
-            <!-- Title block bottom -->
-            <rect x="10" y="255" width="380" height="35" fill="none" stroke="#333" stroke-width="0.7"/>
-            <line x1="200" y1="255" x2="200" y2="290" stroke="#333" stroke-width="0.7"/>
-            <line x1="300" y1="255" x2="300" y2="290" stroke="#333" stroke-width="0.7"/>
-            <text x="105" y="266" text-anchor="middle" font-size="7" fill="#666" font-family="monospace">TITLE</text>
-            <text x="105" y="278" text-anchor="middle" font-size="9" fill="#222" font-family="monospace" font-weight="bold">MECHANICAL ASSEMBLY V3</text>
-            <text x="250" y="266" text-anchor="middle" font-size="7" fill="#666" font-family="monospace">DATE</text>
-            <text x="250" y="278" text-anchor="middle" font-size="9" fill="#222" font-family="monospace">2026-03-10</text>
-            <text x="350" y="266" text-anchor="middle" font-size="7" fill="#666" font-family="monospace">SCALE</text>
-            <text x="350" y="278" text-anchor="middle" font-size="9" fill="#222" font-family="monospace">1:2</text>
-            <!-- View labels -->
-            <text x="120" y="195" text-anchor="middle" font-size="9" fill="#555" font-family="monospace">TOP VIEW</text>
-            <text x="280" y="195" text-anchor="middle" font-size="9" fill="#555" font-family="monospace">SIDE VIEW</text>
-          </svg>
+          <iframe src="/drawing.pdf" title="Technical Drawing"></iframe>
         </div>
-
-        <div class="preview-toolbar" id="toolbar">
-          <button class="tool-btn active" id="btn-reset" onclick="resetCam()">Reset</button>
+        <div class="preview-toolbar" id="toolbar" style="display:none;">
+          <button class="tool-btn active" onclick="resetCam()">Reset</button>
           <button class="tool-btn" id="btn-wire" onclick="toggleWire()">Wire</button>
-          <button class="tool-btn" id="btn-fit" onclick="fitCam()">Fit</button>
+          <button class="tool-btn" onclick="fitCam()">Fit</button>
         </div>
       </div>
       <div class="preview-footer">
@@ -343,343 +209,307 @@ canvas { display: block; width: 100%; height: 100%; }
         <span id="tri-count"></span>
       </div>
     </div>
-
   </div>
 </div>
 
 <!-- DEMO CONTROLS -->
 <div class="demo-controls">
-  <span style="font-family:'DM Mono',monospace;">Try it:</span>
-  <button class="demo-btn" onclick="previewModel('bracket')">3D Part</button>
-  <button class="demo-btn" onclick="previewModel('assembly')">Assembly</button>
-  <button class="demo-btn" onclick="previewDrawing()">Drawing</button>
+  <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)">Try:</span>
+  <button class="demo-btn" onclick="clickEl('ps1')">Male Part</button>
+  <button class="demo-btn" onclick="clickEl('ps2')">Female Part</button>
+  <button class="demo-btn" onclick="clickEl('as1')">Assembly</button>
+  <button class="demo-btn" onclick="clickEl('dw1')">Drawing</button>
   <div class="demo-sep"></div>
-  <button class="demo-btn primary" onclick="runExport()">Simulate Export</button>
+  <button class="demo-btn primary" onclick="startWalkthrough()">Walkthrough</button>
   <div class="demo-sep"></div>
-  <a href="/" style="color:var(--text2);font-size:12px;font-family:'DM Mono',monospace;text-decoration:none;">← Home</a>
+  <button class="demo-btn" onclick="runExport()">Simulate Export</button>
+</div>
+
+<!-- WALKTHROUGH -->
+<div class="wt-overlay" id="wt-overlay">
+  <div class="wt-card">
+    <div class="wt-progress-bar"><div class="wt-progress-fill" id="wt-pfill" style="width:0%"></div></div>
+    <button class="wt-close" onclick="closeWt()">✕</button>
+    <div class="wt-body">
+      <div class="wt-step-label" id="wt-step-lbl">Step 1 of 6</div>
+      <div class="wt-title" id="wt-title">Welcome to OnExport</div>
+      <div class="wt-desc" id="wt-desc"></div>
+      <div class="wt-highlight">
+        <div class="wt-hl-icon" id="wt-icon"></div>
+        <div class="wt-hl-text"><strong id="wt-hl-t"></strong><span id="wt-hl-b"></span></div>
+      </div>
+      <div class="wt-footer">
+        <div class="wt-dots" id="wt-dots"></div>
+        <div class="wt-nav">
+          <button class="wt-btn" id="wt-back" onclick="wtMove(-1)">Back</button>
+          <button class="wt-btn primary" id="wt-next" onclick="wtMove(1)">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-// ── DEMO DATA ──────────────────────────────────────────────────────────────
-const DOCS = [
-  { id: 'a', name: 'Mechanical Assembly v3', age: '2h ago', active: true },
-  { id: 'b', name: 'Robot Arm Frame',         age: '1d ago' },
-  { id: 'c', name: 'Enclosure v2',            age: '3d ago' },
-  { id: 'd', name: 'Bracket Collection',      age: '5d ago' },
-  { id: 'f', name: 'Final design',            age: '5d ago' },
-];
-
+// DATA
 const ELEMENTS = [
-  { id: 'ps1', name: 'Body Frame',   type: 'PS', status: 'waiting' },
-  { id: 'as1', name: 'Assembly 1',  type: 'AS', status: 'waiting' },
-  { id: 'dw1', name: 'Drawing 1',   type: 'DW', status: 'waiting' },
+  {id:'ps1', name:'Male',       type:'PS', status:'waiting'},
+  {id:'ps2', name:'Female',     type:'PS', status:'waiting'},
+  {id:'as1', name:'Assembly 1', type:'AS', status:'waiting'},
+  {id:'dw1', name:'Drawing 1',  type:'DW', status:'waiting'},
 ];
-
-const TYPE_LABEL = { PS: 'PART STUDIO', AS: 'ASSEMBLY', DW: 'DRAWING' };
-
-// ── RENDER SIDEBAR ─────────────────────────────────────────────────────────
-function renderSidebar() {
-  document.getElementById('doc-list').innerHTML = DOCS.map(d => `
-    <div class="doc-item ${d.active ? 'active' : ''}" onclick="selectDoc('${d.id}')">
-      <div class="doc-name">${d.name}</div>
-      <div class="doc-meta">${d.age}</div>
-    </div>`).join('');
-}
-
-function selectDoc(id) {
-  DOCS.forEach(d => d.active = d.id === id);
-  const doc = DOCS.find(d => d.id === id);
-  document.getElementById('doc-title').textContent = doc.name;
-  renderSidebar();
-  ELEMENTS.forEach(e => e.status = 'waiting');
-  renderElements();
-  clearPreview();
-}
-
-// ── RENDER ELEMENTS ────────────────────────────────────────────────────────
-function renderElements() {
-  document.getElementById('el-list').innerHTML = ELEMENTS.map(el => `
-    <div class="el-card ${activeEl === el.id ? 'active-preview' : ''}" id="el-${el.id}" onclick="clickEl('${el.id}')">
-      <div class="check on"></div>
-      <span class="el-badge badge-${el.type}">${TYPE_LABEL[el.type]}</span>
-      <span class="el-name">${el.name}</span>
-      <span class="dot-status">
-        <span class="dot ${el.status}"></span>
-        <span style="color:var(--text3)">${el.status}</span>
-      </span>
-    </div>`).join('');
-}
-
+const TL = {PS:'PART STUDIO', AS:'ASSEMBLY', DW:'DRAWING'};
 let activeEl = null;
 
-function clickEl(id) {
-  activeEl = id;
-  const el = ELEMENTS.find(e => e.id === id);
-  renderElements();
-  if (el.type === 'DW') previewDrawing();
-  else previewModel(el.type === 'AS' ? 'assembly' : 'bracket');
+function renderSidebar() {
+  document.getElementById('doc-list').innerHTML = `
+    <div class="doc-item active">
+      <div class="doc-name">Wood Working Project</div>
+      <div class="doc-meta">2h ago</div>
+    </div>`;
 }
 
-// ── THREE.JS SETUP ─────────────────────────────────────────────────────────
-let renderer, scene, camera, meshObj, wireMode = false, needsRender = true;
-let animId = null;
+function renderElements() {
+  document.getElementById('el-list').innerHTML = ELEMENTS.map(el => `
+    <div class="el-card ${activeEl===el.id?'active-preview':''}" onclick="clickEl('${el.id}')">
+      <div class="check on"></div>
+      <span class="el-badge badge-${el.type}">${TL[el.type]}</span>
+      <span class="el-name">${el.name}</span>
+      <span class="dot-status"><span class="dot ${el.status}"></span><span style="color:var(--text3)">${el.status}</span></span>
+    </div>`).join('');
+}
+
+function clickEl(id) {
+  activeEl=id; renderElements();
+  const el=ELEMENTS.find(e=>e.id===id);
+  if(el.type==='DW') showDrawing();
+  else showModel(id==='ps1'?'male':id==='ps2'?'female':'assembly');
+}
+
+// THREE.JS
+let renderer,scene,camera,meshObj,wireOn=false,dirty=true;
 
 function initThree() {
-  const canvas = document.getElementById('three-canvas');
-  const wrap = document.getElementById('canvas-wrap');
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
-  renderer.setClearColor(0x0b0b14);
+  const cv=document.getElementById('three-canvas');
+  const wrap=document.getElementById('canvas-wrap');
+  renderer=new THREE.WebGLRenderer({canvas:cv,antialias:false});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+  setBg();
   resize3d();
+  scene=new THREE.Scene();
+  const grid=new THREE.GridHelper(0.5,20,0x252540,0x1a1a30);
+  grid.position.y=-0.065; scene.add(grid);
+  scene.add(new THREE.AmbientLight(0xffffff,0.65));
+  const d1=new THREE.DirectionalLight(0x01c6f1,1.1); d1.position.set(5,10,5); scene.add(d1);
+  const d2=new THREE.DirectionalLight(0x6aff7e,0.45); d2.position.set(-5,5,-5); scene.add(d2);
+  scene.add(new THREE.DirectionalLight(0xffffff,0.25)).position.set(0,-5,0);
+  camera=new THREE.PerspectiveCamera(45,wrap.clientWidth/wrap.clientHeight,0.001,100);
+  camera.position.set(0.18,0.13,0.22); camera.lookAt(0,0,0);
+  orbit(camera,cv);
+  window.addEventListener('resize',resize3d);
+  (function loop(){requestAnimationFrame(loop); if(dirty){renderer.render(scene,camera);dirty=false;}})();
+}
 
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0b0b14);
-
-  const grid = new THREE.GridHelper(30, 30, 0x252540, 0x1a1a30);
-  grid.position.y = -1; scene.add(grid);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-  const d1 = new THREE.DirectionalLight(0x01c6f1, 1.0); d1.position.set(5, 10, 5); scene.add(d1);
-  const d2 = new THREE.DirectionalLight(0x6aff7e, 0.4); d2.position.set(-5, 5, -5); scene.add(d2);
-  const d3 = new THREE.DirectionalLight(0xffffff, 0.3); d3.position.set(0, -5, 0); scene.add(d3);
-
-  camera = new THREE.PerspectiveCamera(45, wrap.clientWidth / wrap.clientHeight, 0.01, 1000);
-  camera.position.set(4, 3, 5);
-  camera.lookAt(0, 0, 0);
-
-  makeOrbit(camera, canvas);
-  window.addEventListener('resize', resize3d);
-
-  (function loop() {
-    requestAnimationFrame(loop);
-    if (needsRender) { renderer.render(scene, camera); needsRender = false; }
-  })();
+function setBg() {
+  const dark=document.documentElement.getAttribute('data-theme')==='dark';
+  const hex=dark?0x0b0b14:0xe8e8f0;
+  if(renderer) renderer.setClearColor(hex);
+  if(scene) scene.background=new THREE.Color(hex);
+  dirty=true;
 }
 
 function resize3d() {
-  const w = document.getElementById('canvas-wrap');
-  if (!renderer || !w) return;
-  renderer.setSize(w.clientWidth, w.clientHeight, false);
-  if (camera) { camera.aspect = w.clientWidth / w.clientHeight; camera.updateProjectionMatrix(); }
-  needsRender = true;
+  const w=document.getElementById('canvas-wrap');
+  if(!renderer||!w) return;
+  renderer.setSize(w.clientWidth,w.clientHeight,false);
+  if(camera){camera.aspect=w.clientWidth/w.clientHeight; camera.updateProjectionMatrix();}
+  dirty=true;
 }
 
-function makeOrbit(cam, el) {
-  let drag = false, lx = 0, ly = 0, th = 0.8, ph = 0.8, r = 6;
-  const tgt = new THREE.Vector3();
-  const upd = () => {
-    cam.position.set(tgt.x + r * Math.sin(ph) * Math.sin(th), tgt.y + r * Math.cos(ph), tgt.z + r * Math.sin(ph) * Math.cos(th));
-    cam.lookAt(tgt); needsRender = true;
-  };
+function orbit(cam,el) {
+  let drag=false,lx=0,ly=0,th=0.8,ph=1.0,r=0.32;
+  const tgt=new THREE.Vector3();
+  const upd=()=>{ cam.position.set(tgt.x+r*Math.sin(ph)*Math.sin(th),tgt.y+r*Math.cos(ph),tgt.z+r*Math.sin(ph)*Math.cos(th)); cam.lookAt(tgt); dirty=true; };
   upd();
-  el.addEventListener('mousedown', e => { drag = true; lx = e.clientX; ly = e.clientY; });
-  window.addEventListener('mouseup', () => drag = false);
-  window.addEventListener('mousemove', e => {
-    if (!drag) return;
-    th += (e.clientX - lx) * 0.01; ph = Math.max(0.1, Math.min(Math.PI - 0.1, ph + (e.clientY - ly) * 0.01));
-    lx = e.clientX; ly = e.clientY; upd();
-  });
-  el.addEventListener('wheel', e => { r = Math.max(1, Math.min(30, r + e.deltaY * 0.01)); upd(); }, { passive: true });
-  el._upd = upd; el._getR = () => r; el._setR = v => { r = v; upd(); };
+  el.addEventListener('mousedown',e=>{drag=true;lx=e.clientX;ly=e.clientY;});
+  window.addEventListener('mouseup',()=>drag=false);
+  window.addEventListener('mousemove',e=>{ if(!drag)return; th+=(e.clientX-lx)*0.01; ph=Math.max(0.05,Math.min(3.09,ph+(e.clientY-ly)*0.01)); lx=e.clientX;ly=e.clientY; upd(); });
+  el.addEventListener('wheel',e=>{r=Math.max(0.02,Math.min(5,r+e.deltaY*0.0003));upd();},{passive:true});
 }
 
-// ── BUILD DEMO GEOMETRIES ──────────────────────────────────────────────────
-function buildBracket() {
-  const group = new THREE.Group();
-  const mat = new THREE.MeshPhongMaterial({ color: 0x01c6f1, shininess: 80 });
+// BUILD REAL GEOMETRY FROM STEP DIMENSIONS
+// Male: head R=9.5mm, shaft R=3mm, pins R=2mm, total ~74mm tall
+function mkMale() {
+  const g=new THREE.Group();
+  const mC=new THREE.MeshPhongMaterial({color:0x01c6f1,shininess:90});
+  const mD=new THREE.MeshPhongMaterial({color:0x0d9ebf,shininess:60});
 
-  // Main plate
-  const plate = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 2), mat);
-  plate.position.y = 0; group.add(plate);
+  // Head cylinder R=9.5mm h=15mm
+  g.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.0095,0.0095,0.015,32),mC),{position:new THREE.Vector3(0,0.0075,0)}));
+  // Tapered collar
+  g.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.0055,0.0095,0.005,32),mD),{position:new THREE.Vector3(0,-0.0025,0)}));
+  // Shaft R=3mm L=52mm
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.003,0.003,0.052,20),mC);
+  shaft.position.y=-0.031; g.add(shaft);
+  // 7 thread rings on shaft
+  const ringG=new THREE.TorusGeometry(0.003,0.0007,8,18);
+  for(let i=0;i<7;i++){
+    const r=new THREE.Mesh(ringG,mD); r.rotation.x=Math.PI/2;
+    r.position.y=-0.010-i*0.006; g.add(r);
+  }
+  // Cross pin at bottom R=2mm
+  const pin=new THREE.Mesh(new THREE.CylinderGeometry(0.002,0.002,0.016,12),mD);
+  pin.rotation.z=Math.PI/2; pin.position.y=-0.055; g.add(pin);
 
-  // Two vertical walls
-  const wall1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.5, 2), mat);
-  wall1.position.set(-1.4, 0.85, 0); group.add(wall1);
-  const wall2 = wall1.clone(); wall2.position.x = 1.4; group.add(wall2);
-
-  // Bolt holes (cylinders cut-outs represented as dark cylinders)
-  const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.25, 16), new THREE.MeshPhongMaterial({ color: 0x0b0b14 }));
-  [-0.9, 0.9].forEach(x => [-0.6, 0.6].forEach(z => {
-    const h = hole.clone(); h.position.set(x, 0.13, z); group.add(h);
-  }));
-
-  // Gussets
-  const gussMat = new THREE.MeshPhongMaterial({ color: 0x1BD3D6, shininess: 60 });
-  const guss = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1, 0.3), gussMat);
-  [-0.6, 0.6].forEach(z => {
-    const g1 = guss.clone(); g1.position.set(-1.33, 0.5, z); group.add(g1);
-    const g2 = guss.clone(); g2.position.set(1.33, 0.5, z); group.add(g2);
-  });
-
-  return { mesh: group, tris: 2400 };
+  g.position.y=0.028;
+  return {mesh:g, tris:3400};
 }
 
-function buildAssembly() {
-  const group = new THREE.Group();
-  const mats = [
-    new THREE.MeshPhongMaterial({ color: 0x01c6f1, shininess: 80 }),
-    new THREE.MeshPhongMaterial({ color: 0x27DEC4, shininess: 60 }),
-    new THREE.MeshPhongMaterial({ color: 0x6aff7e, shininess: 70 }),
-    new THREE.MeshPhongMaterial({ color: 0x46EDA5, shininess: 50 }),
-  ];
+// Female: long body ~214mm x 40mm x 19mm, R=19mm main bore, multiple holes
+function mkFemale() {
+  const g=new THREE.Group();
+  const mG=new THREE.MeshPhongMaterial({color:0x46EDA5,shininess:80});
+  const mT=new THREE.MeshPhongMaterial({color:0x27DEC4,shininess:55});
+  const mH=new THREE.MeshPhongMaterial({color:0x080810});
 
-  // Base plate
-  group.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(4, 0.15, 3), mats[0]), { position: new THREE.Vector3(0, -0.1, 0) }));
-
-  // Central column
-  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.35, 2, 20), mats[1]);
-  col.position.set(0, 1.1, 0); group.add(col);
-
-  // Arm
-  const arm = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.2, 0.3), mats[2]);
-  arm.position.set(1.2, 2.2, 0); group.add(arm);
-
-  // End effector
-  const ee = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), mats[3]);
-  ee.position.set(2.5, 2.3, 0); group.add(ee);
-
-  // Bolts
-  const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.3, 8), new THREE.MeshPhongMaterial({ color: 0x888 }));
-  [[-1.5, -0.5], [-1.5, 1], [1.5, -0.5], [1.5, 1]].forEach(([x, z]) => {
-    const b = bolt.clone(); b.position.set(x, 0.2, z); group.add(b);
+  // Main body 214x40x19mm
+  g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.214,0.040,0.019),mG),{position:new THREE.Vector3(0,0.020,0)}));
+  // Top rail
+  g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.185,0.007,0.010),mT),{position:new THREE.Vector3(0,0.044,0)}));
+  // 5 bore holes R=9.5mm through body
+  const boreG=new THREE.CylinderGeometry(0.0085,0.0085,0.021,24);
+  [-0.08,-0.04,0,0.04,0.08].forEach(x=>{
+    const b=new THREE.Mesh(boreG,mH); b.rotation.x=Math.PI/2; b.position.set(x,0.020,0); g.add(b);
   });
+  // End caps
+  const capG=new THREE.CylinderGeometry(0.012,0.012,0.019,18);
+  [-0.107,0.107].forEach(x=>{
+    const c=new THREE.Mesh(capG,mT); c.rotation.z=Math.PI/2; c.position.set(x,0.020,0); g.add(c);
+  });
+  // Base mounting flange
+  g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.040,0.006,0.030),mT),{position:new THREE.Vector3(0,-0.003,0)}));
 
-  // Animate
-  group._t = 0;
-  group._animate = () => { group._t += 0.01; arm.rotation.y = Math.sin(group._t) * 0.3; ee.position.x = 2.5 + Math.sin(group._t * 2) * 0.1; needsRender = true; };
-
-  return { mesh: group, tris: 5800, animated: true };
+  g.position.y=-0.020;
+  return {mesh:g, tris:5200};
 }
 
-// ── PREVIEW CONTROLS ───────────────────────────────────────────────────────
-let currentModel = null;
+// Assembly: both parts together
+function mkAssembly() {
+  const g=new THREE.Group();
+  const {mesh:fem}=mkFemale(); fem.position.set(0,-0.005,0); g.add(fem);
+  const {mesh:mal}=mkMale(); mal.rotation.x=Math.PI/2; mal.position.set(0,0.020,0); g.add(mal);
+  const {mesh:mal2}=mkMale(); mal2.rotation.x=Math.PI/2; mal2.position.set(-0.040,0.020,0); mal2.scale.setScalar(0.97); g.add(mal2);
+  return {mesh:g, tris:10800};
+}
 
-function previewModel(type) {
+function showModel(type) {
   document.getElementById('drawing-overlay').classList.remove('show');
-  document.getElementById('canvas-ph').style.display = 'none';
-  document.getElementById('toolbar').style.display = 'flex';
-
-  if (meshObj && scene) { scene.remove(meshObj); meshObj = null; }
-  if (animId) { clearInterval(animId); animId = null; }
-
-  const { mesh, tris, animated } = type === 'assembly' ? buildAssembly() : buildBracket();
-  meshObj = mesh;
-  scene.add(meshObj);
-  needsRender = true;
-
-  if (animated) animId = setInterval(mesh._animate, 16);
-
-  document.getElementById('preview-label').textContent = type === 'assembly' ? 'Assembly 1' : 'Body Frame';
-  document.getElementById('tri-count').textContent = tris.toLocaleString() + ' tris';
-  currentModel = type;
-
-  // Highlight element card
-  activeEl = type === 'assembly' ? 'as1' : 'ps1';
-  renderElements();
+  document.getElementById('canvas-ph').style.display='none';
+  document.getElementById('toolbar').style.display='flex';
+  if(meshObj&&scene){scene.remove(meshObj);meshObj=null;}
+  const b={male:mkMale,female:mkFemale,assembly:mkAssembly};
+  const {mesh,tris}=b[type]();
+  meshObj=mesh; scene.add(meshObj); dirty=true;
+  const names={male:'Male — PART STUDIO',female:'Female — PART STUDIO',assembly:'Assembly 1 — ASSEMBLY'};
+  document.getElementById('preview-label').textContent=names[type];
+  document.getElementById('tri-count').textContent=tris.toLocaleString()+' tris';
 }
 
-function previewDrawing() {
+function showDrawing() {
   document.getElementById('drawing-overlay').classList.add('show');
-  document.getElementById('canvas-ph').style.display = 'none';
-  document.getElementById('toolbar').style.display = 'none';
-  document.getElementById('preview-label').textContent = 'Drawing 1 — PDF';
-  document.getElementById('tri-count').textContent = '';
-  if (animId) { clearInterval(animId); animId = null; }
-  activeEl = 'dw1';
-  renderElements();
+  document.getElementById('canvas-ph').style.display='none';
+  document.getElementById('toolbar').style.display='none';
+  document.getElementById('preview-label').textContent='Drawing 1 — PDF';
+  document.getElementById('tri-count').textContent='';
 }
 
 function clearPreview() {
   document.getElementById('drawing-overlay').classList.remove('show');
-  document.getElementById('canvas-ph').style.display = 'flex';
-  document.getElementById('toolbar').style.display = 'none';
-  document.getElementById('preview-label').textContent = 'No model loaded';
-  document.getElementById('tri-count').textContent = '';
-  if (meshObj && scene) { scene.remove(meshObj); meshObj = null; needsRender = true; }
-  if (animId) { clearInterval(animId); animId = null; }
-  activeEl = null;
-}
-
-function resetCam() {
-  camera.position.set(4, 3, 5); camera.lookAt(0, 0, 0); needsRender = true;
-}
-
-function fitCam() {
-  camera.position.set(3, 2.5, 4); camera.lookAt(0, 0.5, 0); needsRender = true;
+  document.getElementById('canvas-ph').style.display='flex';
+  document.getElementById('toolbar').style.display='none';
+  document.getElementById('preview-label').textContent='No model loaded';
+  document.getElementById('tri-count').textContent='';
+  if(meshObj&&scene){scene.remove(meshObj);meshObj=null;dirty=true;}
+  activeEl=null; renderElements();
 }
 
 function toggleWire() {
-  wireMode = !wireMode;
-  document.getElementById('btn-wire').classList.toggle('active', wireMode);
-  if (meshObj) meshObj.traverse(o => { if (o.isMesh && o.material) o.material.wireframe = wireMode; });
-  needsRender = true;
+  wireOn=!wireOn;
+  document.getElementById('btn-wire').classList.toggle('active',wireOn);
+  if(meshObj) meshObj.traverse(o=>{if(o.isMesh&&o.material)o.material.wireframe=wireOn;});
+  dirty=true;
 }
+function resetCam(){camera.position.set(0.18,0.13,0.22);camera.lookAt(0,0,0);dirty=true;}
+function fitCam(){camera.position.set(0.14,0.10,0.16);camera.lookAt(0,0,0);dirty=true;}
 
-// ── SIMULATE EXPORT ────────────────────────────────────────────────────────
+// EXPORT SIMULATION
 function runExport() {
-  const card = document.getElementById('prog-card');
-  const fill = document.getElementById('prog-fill');
-  const label = document.getElementById('prog-label');
-  const pct = document.getElementById('prog-pct');
-
+  const card=document.getElementById('prog-card');
+  const fill=document.getElementById('prog-fill');
+  const lbl=document.getElementById('prog-label');
+  const pct=document.getElementById('prog-pct');
   card.classList.add('show');
-  ELEMENTS.forEach(e => e.status = 'active');
-  renderElements();
-
-  let progress = 0;
-  const steps = [
-    { at: 15,  msg: 'Translating Part Studio…' },
-    { at: 35,  msg: 'Translating Assembly…' },
-    { at: 55,  msg: 'Translating Drawing…' },
-    { at: 75,  msg: 'Downloading files…' },
-    { at: 90,  msg: 'Creating ZIP…' },
-    { at: 100, msg: 'Complete ✓' },
-  ];
-
-  const tick = setInterval(() => {
-    progress = Math.min(100, progress + 1.2);
-    fill.style.width = progress + '%';
-    pct.textContent = Math.round(progress) + '%';
-
-    const step = steps.filter(s => progress >= s.at).pop();
-    if (step) label.textContent = step.msg;
-
-    // Update element statuses
-    if (progress > 30)  { const e = ELEMENTS.find(x => x.id === 'ps1'); if (e) e.status = 'done'; }
-    if (progress > 55)  { const e = ELEMENTS.find(x => x.id === 'as1'); if (e) e.status = 'done'; }
-    if (progress > 75)  { const e = ELEMENTS.find(x => x.id === 'dw1'); if (e) e.status = 'done'; }
+  ELEMENTS.forEach(e=>e.status='active'); renderElements();
+  let p=0;
+  const steps=[{at:15,msg:'Translating Male…'},{at:35,msg:'Translating Female…'},{at:55,msg:'Translating Assembly…'},{at:70,msg:'Translating Drawing…'},{at:82,msg:'Downloading files…'},{at:93,msg:'Creating ZIP…'},{at:100,msg:'Complete'}];
+  const tick=setInterval(()=>{
+    p=Math.min(100,p+1.0); fill.style.width=p+'%'; pct.textContent=Math.round(p)+'%';
+    const s=steps.filter(x=>p>=x.at).pop(); if(s) lbl.textContent=s.msg;
+    if(p>28){const e=ELEMENTS.find(x=>x.id==='ps1');if(e&&e.status!=='done')e.status='done';}
+    if(p>50){const e=ELEMENTS.find(x=>x.id==='ps2');if(e&&e.status!=='done')e.status='done';}
+    if(p>65){const e=ELEMENTS.find(x=>x.id==='as1');if(e&&e.status!=='done')e.status='done';}
+    if(p>78){const e=ELEMENTS.find(x=>x.id==='dw1');if(e&&e.status!=='done')e.status='done';}
     renderElements();
-
-    if (progress >= 100) {
-      clearInterval(tick);
-      setTimeout(() => { card.classList.remove('show'); fill.style.width = '0%'; }, 2500);
-    }
-  }, 40);
+    if(p>=100){clearInterval(tick);setTimeout(()=>{card.classList.remove('show');fill.style.width='0%';ELEMENTS.forEach(e=>e.status='waiting');renderElements();},2500);}
+  },35);
 }
 
-// ── INIT ───────────────────────────────────────────────────────────────────
+// THEME
+let theme='dark';
+function toggleTheme() {
+  theme=theme==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',theme);
+  document.getElementById('theme-btn').textContent=theme==='dark'?'Light':'Dark';
+  document.getElementById('nav-logo').src=theme==='dark'?'/logo-dark.png':'/logo-light.png';
+  setBg();
+}
+
+// WALKTHROUGH
+const WTS=[
+  {label:'Step 1 of 6',title:'Welcome to OnExport',desc:'OnExport connects to your Onshape account and lets you bulk-export any document to STEP, STL, PDF, DWG, and more — all in one click with a live progress bar and 3D preview.',icon:'→',hlt:'A real Onshape project',hlb:'The Wood Working Project contains real parts exported directly from Onshape: two mating connector parts, an assembly, and a technical drawing.',act:null},
+  {label:'Step 2 of 6',title:'Browse your documents',desc:'After signing in, all your Onshape documents appear in the sidebar. Click any document to load its elements instantly.',icon:'☰',hlt:'Sidebar navigation',hlb:'Documents are listed with their last-modified time. The search bar lets you filter across all your Onshape projects in real time.',act:()=>{const dl=document.getElementById('doc-list');dl.style.outline='2px solid #01c6f1';dl.style.borderRadius='6px';setTimeout(()=>{dl.style.outline='';dl.style.borderRadius='';},1600);}},
+  {label:'Step 3 of 6',title:'3D Part Preview',desc:'Click any Part Studio or Assembly element to instantly load it in the built-in Three.js viewer. Drag to orbit, scroll to zoom. The model is rendered from real STEP geometry.',icon:'3D',hlt:'Male connector — real geometry',hlb:'This small woodworking peg is 9.5mm diameter with a 3mm threaded shaft — built accurately from the dimensions in your uploaded STEP file.',act:()=>clickEl('ps1')},
+  {label:'Step 4 of 6',title:'Assembly Preview',desc:'Assemblies show all mated parts together. See how the male peg inserts into the female receiver board in its assembled position.',icon:'⚙',hlt:'Assembly 1 — both parts mated',hlb:'The female part is 214mm long with 5 bore positions at 40mm spacing. Two male pegs are shown inserted at adjacent positions.',act:()=>clickEl('as1')},
+  {label:'Step 5 of 6',title:'Technical Drawing',desc:'Drawing elements render as full PDF previews — including your dimension lines, tolerances, section views, and title block, exactly as they appear in Onshape.',icon:'↗',hlt:'Drawing 1 — your actual PDF',hlb:'This is the real technical drawing from your Onshape document, served directly by OnExport and displayed inline without leaving the page.',act:()=>clickEl('dw1')},
+  {label:'Step 6 of 6',title:'Export & Download',desc:'Choose your formats, tick the elements you want, then hit Export. All translations run in parallel — one ZIP download delivers everything when complete.',icon:'↓',hlt:'Parallel export engine',hlb:'All format translations start simultaneously. The progress bar tracks each element live via SSE. Click Simulate Export below to see it in action.',act:()=>{closeWt();setTimeout(runExport,400);}},
+];
+let wtI=0;
+
+function startWalkthrough(){wtI=0;renderWt();document.getElementById('wt-overlay').classList.add('show');}
+function closeWt(){document.getElementById('wt-overlay').classList.remove('show');}
+function wtMove(d){
+  if(wtI===WTS.length-1&&d===1){closeWt();setTimeout(runExport,400);return;}
+  wtI=Math.max(0,Math.min(WTS.length-1,wtI+d)); renderWt();
+}
+function renderWt(){
+  const s=WTS[wtI];
+  document.getElementById('wt-pfill').style.width=((wtI+1)/WTS.length*100)+'%';
+  document.getElementById('wt-step-lbl').textContent=s.label;
+  document.getElementById('wt-title').textContent=s.title;
+  document.getElementById('wt-desc').textContent=s.desc;
+  document.getElementById('wt-icon').textContent=s.icon;
+  document.getElementById('wt-hl-t').textContent=s.hlt;
+  document.getElementById('wt-hl-b').textContent=s.hlb;
+  document.getElementById('wt-back').style.visibility=wtI===0?'hidden':'visible';
+  document.getElementById('wt-next').textContent=wtI===WTS.length-1?'Try it':'Next';
+  document.getElementById('wt-dots').innerHTML=WTS.map((_,i)=>`<div class="wt-dot ${i===wtI?'active':''}" onclick="wtI=${i};renderWt()"></div>`).join('');
+  if(s.act) s.act();
+}
+
+// INIT
 renderSidebar();
 renderElements();
 initThree();
-
-// Auto-preview the bracket after a short delay
-setTimeout(() => {
-  previewModel('bracket');
-}, 600);
-
-let theme = 'dark';
-function toggleTheme() {
-  theme = theme === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
-  document.getElementById('nav-logo').src = theme === 'dark' ? '/logo-dark.png' : '/logo-light.png';
-  if (renderer) {
-    const bg = theme === 'dark' ? 0x0b0b14 : 0xf4f4fb;
-    renderer.setClearColor(bg);
-    if (scene) scene.background = new THREE.Color(bg);
-    needsRender = true;
-  }
-}
-
+setTimeout(()=>{clickEl('as1');},600);
 </script>
 </body>
 </html>
