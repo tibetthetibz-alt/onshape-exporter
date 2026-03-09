@@ -6,215 +6,272 @@
 <title>OnExport — Live Demo</title>
 <link rel="icon" type="image/png" href="/logo-dark.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Francois+One&family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
-*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-:root { --c1:#00007E; --c2:#01c6f1; --c3:#1BD3D6; --c4:#27DEC4; --c5:#46EDA5; --c6:#6aff7e; }
-[data-theme="dark"] {
-  --bg:#0b0b14; --bg2:#111120; --surface:#17172a; --surface2:#1f1f36;
-  --border:#252540; --text:#f0f0ff; --text2:#9090b8; --text3:#50507a;
-}
-[data-theme="light"] {
-  --bg:#ffffff; --bg2:#f4f4fb; --surface:#ffffff; --surface2:#ececf8;
-  --border:#dcdcf0; --text:#0a0a1a; --text2:#44446a; --text3:#9999c0;
-}
-html,body { height:100%; overflow:hidden; }
-body { background:var(--bg); color:var(--text); font-family:'Syne',sans-serif; transition:background 0.2s,color 0.2s; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--c1:#00007E;--c2:#01c6f1;--c3:#1BD3D6;--c4:#27DEC4;--c5:#46EDA5;--c6:#6aff7e;--radius:10px;--tr:0.15s ease;}
+[data-theme="dark"]{--bg:#0b0b14;--bg2:#111120;--surface:#17172a;--surface2:#1f1f36;--border:#252540;--text:#f0f0ff;--text2:#9090b8;--text3:#50507a;--accent:var(--c1);--accent-lt:#1a1ab0;--hi:var(--c2);}
+[data-theme="light"]{--bg:#ffffff;--bg2:#f4f4fb;--surface:#ffffff;--surface2:#ececf8;--border:#dcdcf0;--text:#0a0a1a;--text2:#44446a;--text3:#9999c0;--accent:var(--c1);--accent-lt:#2222c0;--hi:var(--c2);}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;transition:background var(--tr),color var(--tr);}
 
-/* NAV */
-.nav { height:48px; display:flex; align-items:center; justify-content:space-between; padding:0 20px; border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0; z-index:50; }
-.logo { display:flex; align-items:center; gap:9px; font-size:15px; font-weight:700; color:var(--text); text-decoration:none; }
-.logo-icon { width:26px; height:26px; border-radius:6px; overflow:hidden; flex-shrink:0; }
-.logo-icon img { width:100%; height:100%; object-fit:contain; }
-.demo-badge { padding:3px 10px; border-radius:20px; background:rgba(1,198,241,0.1); border:1px solid rgba(1,198,241,0.3); color:var(--c2); font-size:10px; font-family:'DM Mono',monospace; letter-spacing:1px; text-transform:uppercase; }
-.nav-right { display:flex; align-items:center; gap:8px; }
-.user-chip { display:flex; align-items:center; gap:7px; padding:4px 10px 4px 4px; border-radius:20px; background:var(--surface); border:1px solid var(--border); font-size:13px; }
-.avatar { width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,var(--c2),var(--c5)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#000; }
-.nav-btn { background:none; border:1px solid var(--border); color:var(--text2); padding:5px 12px; border-radius:8px; font-family:'DM Mono',monospace; font-size:11px; cursor:pointer; transition:all 0.15s; }
-.nav-btn:hover { border-color:var(--text2); color:var(--text); }
-.btn-back { padding:6px 14px; border-radius:8px; background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.3); color:#f87171; font-size:13px; font-family:'Syne',sans-serif; cursor:pointer; text-decoration:none; }
+/* ── APP NAV (identical to real app) ── */
+.app-nav{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:50px;min-height:50px;border-bottom:1px solid var(--border);background:var(--bg);transition:background var(--tr),border-color var(--tr);}
+.logo{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;color:var(--text);text-decoration:none;}
+.logo-icon{width:26px;height:26px;border-radius:6px;overflow:hidden;flex-shrink:0;}
+.logo-icon img{width:100%;height:100%;object-fit:contain;}
+.nav-right-app{display:flex;align-items:center;gap:8px;}
+.user-chip{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text2);}
+.avatar{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;}
+.demo-badge{padding:3px 10px;border-radius:20px;background:rgba(1,198,241,0.1);border:1px solid rgba(1,198,241,0.3);color:var(--c2);font-size:10px;font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all var(--tr);text-decoration:none;}
+.btn-primary{background:linear-gradient(90deg,var(--c2),var(--c4));color:#000;border:none;}
+.btn-primary:hover{opacity:0.9;transform:translateY(-1px);box-shadow:0 4px 20px rgba(1,198,241,0.35);}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.btn-danger{background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.25);color:#f87171;}
+.theme-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:5px 10px;border-radius:7px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;transition:all var(--tr);}
+.theme-btn:hover{border-color:var(--hi);color:var(--hi);}
 
-/* LAYOUT */
-.shell { display:flex; flex-direction:column; height:100vh; }
-.workspace { display:grid; grid-template-columns:240px 1fr 360px; flex:1; min-height:0; overflow:hidden; }
+/* ── LAYOUT ── */
+.shell{display:flex;flex-direction:column;height:100vh;}
+.workspace{display:grid;grid-template-columns:260px 1fr 350px;flex:1;min-height:0;overflow:hidden;}
 
-/* SIDEBAR */
-.sidebar { border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; background:var(--bg2); }
-.sidebar-top { padding:14px 12px 10px; border-bottom:1px solid var(--border); flex-shrink:0; }
-.sidebar-label { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text3); font-family:'DM Mono',monospace; margin-bottom:8px; }
-.search { display:flex; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:7px 10px; }
-.search input { background:none; border:none; outline:none; color:var(--text); font-family:'DM Mono',monospace; font-size:12px; width:100%; }
-.doc-list { flex:1; overflow-y:auto; padding:6px 0; }
-.doc-item { padding:9px 14px; cursor:pointer; border-left:2px solid transparent; transition:all 0.12s; }
-.doc-item:hover { background:var(--surface2); }
-.doc-item.active { background:var(--surface2); border-left-color:var(--c2); }
-.doc-name { font-size:13px; font-weight:500; color:var(--text); }
-.doc-meta { font-size:11px; color:var(--text3); font-family:'DM Mono',monospace; margin-top:2px; }
+/* ── SIDEBAR ── */
+.sidebar{border-right:1px solid var(--border);background:var(--bg2);display:flex;flex-direction:column;overflow:hidden;transition:background var(--tr);}
+.sidebar-top{padding:12px;border-bottom:1px solid var(--border);}
+.sidebar-label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;font-family:'DM Mono',monospace;}
+.search{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:7px 10px;transition:border-color var(--tr);}
+.search:focus-within{border-color:var(--hi);}
+.search svg{opacity:0.35;flex-shrink:0;}
+.search input{background:none;border:none;outline:none;color:var(--text);font-family:inherit;font-size:13px;width:100%;}
+.search input::placeholder{color:var(--text3);}
+.folder-filter{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;}
+.folder-chip{font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--border);color:var(--text3);cursor:pointer;background:transparent;font-family:inherit;transition:all var(--tr);white-space:nowrap;}
+.folder-chip.active{background:var(--hi);border-color:var(--hi);color:#000;font-weight:600;}
+.doc-list{flex:1;overflow-y:auto;}
+.doc-list::-webkit-scrollbar{width:3px;}
+.doc-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.doc-item{padding:10px 14px;cursor:pointer;border-left:2px solid transparent;transition:all var(--tr);border-bottom:1px solid rgba(128,128,128,0.05);}
+.doc-item:hover{background:rgba(128,128,128,0.05);}
+.doc-item.active{background:rgba(1,198,241,0.07);border-left-color:var(--hi);}
+.doc-name{font-size:14px;font-weight:400;color:var(--text);margin-bottom:2px;font-family:'Francois One',sans-serif;}
+.doc-meta{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;}
 
-/* MAIN */
-.main-panel { display:flex; flex-direction:column; overflow:hidden; background:var(--bg); }
-.doc-header { padding:16px 22px 14px; border-bottom:1px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
-.doc-title { font-size:18px; font-weight:700; }
-.export-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.format-select { background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:7px 10px; font-family:'DM Mono',monospace; font-size:12px; outline:none; }
-.label-sm { font-size:10px; color:var(--text3); font-family:'DM Mono',monospace; }
-.btn-export { padding:8px 20px; border-radius:10px; border:none; background:linear-gradient(90deg,var(--c2),var(--c4)); color:#000; font-family:'Syne',sans-serif; font-size:13px; font-weight:700; cursor:pointer; }
-.elements-section { padding:16px 22px; flex:1; overflow-y:auto; }
-.elements-label { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text3); font-family:'DM Mono',monospace; margin-bottom:10px; }
-.select-all-row { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; margin-bottom:6px; background:var(--surface); border-radius:8px; border:1px solid var(--border); font-size:13px; color:var(--text2); }
-.el-card { display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:10px; border:1px solid var(--border); margin-bottom:6px; background:var(--surface); cursor:pointer; transition:border-color 0.15s,box-shadow 0.12s; }
-.el-card:hover { border-color:var(--c2); box-shadow:0 0 0 1px rgba(1,198,241,0.15); }
-.el-card.active-preview { border-color:var(--c2); box-shadow:0 0 0 2px rgba(1,198,241,0.2); }
-.check { width:16px; height:16px; border-radius:4px; border:1.5px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; }
-.check.on { background:var(--c2); border-color:var(--c2); }
-.check.on::after { content:'✓'; font-size:10px; color:#000; font-weight:700; }
-.el-badge { font-size:9px; padding:2px 7px; border-radius:4px; font-family:'DM Mono',monospace; font-weight:500; letter-spacing:0.5px; white-space:nowrap; }
-.badge-PS { background:rgba(1,198,241,0.1); color:var(--c2); }
-.badge-AS { background:rgba(27,211,214,0.1); color:var(--c3); }
-.badge-DW { background:rgba(180,120,255,0.15); color:#c084fc; }
-.el-name { flex:1; font-size:13px; font-weight:500; }
-.dot-status { display:flex; align-items:center; gap:5px; font-size:11px; font-family:'DM Mono',monospace; }
-.dot { width:7px; height:7px; border-radius:50%; }
-.dot.waiting { background:var(--text3); }
-.dot.done { background:var(--c6); }
-.dot.active { background:var(--c2); animation:pulse 1s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-.progress-card { margin:0 22px 12px; padding:12px 16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; display:none; }
-.progress-card.show { display:block; }
-.progress-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:12px; }
-.prog-track { height:4px; background:var(--surface2); border-radius:2px; overflow:hidden; }
-.prog-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--c2),var(--c5)); transition:width 0.4s ease; }
+/* ── MAIN ── */
+.main-panel{overflow-y:auto;padding:22px;background:var(--bg);transition:background var(--tr);}
+.main-panel::-webkit-scrollbar{width:3px;}
+.main-panel::-webkit-scrollbar-thumb{background:var(--border);}
+.doc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap;}
+.doc-header h2{font-size:18px;font-weight:700;letter-spacing:-0.4px;}
+.export-bar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.format-select{background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:13px;padding:7px 11px;border-radius:7px;cursor:pointer;outline:none;transition:all var(--tr);}
+.format-select:focus{border-color:var(--hi);}
+.label-sm{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;}
 
-/* PREVIEW */
-.preview-panel { border-left:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; background:var(--bg2); position:relative; }
-#canvas-wrap { flex:1; position:relative; min-height:0; }
-canvas { display:block; width:100%; height:100%; }
-.preview-toolbar { position:absolute; bottom:44px; left:50%; transform:translateX(-50%); display:flex; gap:6px; background:rgba(17,17,32,0.88); backdrop-filter:blur(8px); border:1px solid var(--border); border-radius:10px; padding:5px 8px; }
-[data-theme="light"] .preview-toolbar { background:rgba(244,244,251,0.92); }
-.tool-btn { padding:5px 12px; border-radius:6px; border:none; background:transparent; color:var(--text2); font-family:'DM Mono',monospace; font-size:11px; cursor:pointer; transition:all 0.12s; }
-.tool-btn:hover,.tool-btn.active { background:var(--surface2); color:var(--text); }
-.preview-footer { position:absolute; bottom:0; left:0; right:0; padding:8px 14px; font-size:10px; font-family:'DM Mono',monospace; color:var(--text3); border-top:1px solid var(--border); background:var(--bg2); display:flex; justify-content:space-between; }
-.drawing-overlay { position:absolute; inset:0; background:#f0f0f0; display:none; align-items:center; justify-content:center; }
-.drawing-overlay.show { display:flex; }
-.drawing-overlay iframe { width:100%; height:100%; border:none; }
-.canvas-ph { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:var(--text3); font-size:13px; pointer-events:none; }
+/* Select all bar */
+.select-bar{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;}
+.select-bar label{font-size:12px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:7px;user-select:none;}
+.select-bar .sel-count{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-left:auto;}
 
-/* WALKTHROUGH */
-.wt-overlay { position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; }
-.wt-overlay.show { display:flex; }
-.wt-card { background:var(--bg2); border:1px solid var(--border); border-radius:20px; width:min(560px,calc(100vw - 40px)); position:relative; overflow:hidden; }
-.wt-progress-bar { height:3px; background:var(--surface2); }
-.wt-progress-fill { height:100%; background:linear-gradient(90deg,var(--c2),var(--c5)); transition:width 0.4s ease; }
-.wt-body { padding:36px 36px 28px; }
-.wt-step-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; font-family:'DM Mono',monospace; color:var(--c2); margin-bottom:10px; }
-.wt-title { font-size:22px; font-weight:800; margin-bottom:10px; line-height:1.2; }
-.wt-desc { font-size:14px; color:var(--text2); line-height:1.7; margin-bottom:24px; }
-.wt-highlight { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:24px; display:flex; align-items:flex-start; gap:12px; }
-.wt-hl-icon { width:36px; height:36px; border-radius:10px; background:rgba(1,198,241,0.1); border:1px solid rgba(1,198,241,0.2); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:15px; font-family:'DM Mono',monospace; font-weight:700; color:var(--c2); }
-.wt-hl-text { font-size:13px; color:var(--text2); line-height:1.6; }
-.wt-hl-text strong { color:var(--text); display:block; margin-bottom:3px; }
-.wt-footer { display:flex; align-items:center; justify-content:space-between; }
-.wt-dots { display:flex; gap:6px; }
-.wt-dot { width:7px; height:7px; border-radius:50%; background:var(--surface2); transition:all 0.2s; cursor:pointer; }
-.wt-dot.active { background:var(--c2); width:20px; border-radius:4px; }
-.wt-nav { display:flex; gap:8px; }
-.wt-btn { padding:9px 20px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text2); font-family:'Syne',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
-.wt-btn:hover { border-color:var(--text2); color:var(--text); }
-.wt-btn.primary { background:linear-gradient(90deg,var(--c2),var(--c4)); color:#000; border:none; }
-.wt-close { position:absolute; top:14px; right:14px; width:30px; height:30px; border-radius:50%; background:var(--surface2); border:none; color:var(--text2); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+/* Progress */
+.prog-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;display:none;}
+.prog-card.show{display:block;}
+.prog-head{display:flex;justify-content:space-between;margin-bottom:9px;}
+.prog-label{font-size:13px;font-weight:500;}
+.prog-pct{font-size:12px;font-family:'DM Mono',monospace;color:var(--hi);}
+.prog-track{height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.prog-fill{height:100%;width:0%;border-radius:2px;transition:width 0.4s ease;background:linear-gradient(90deg,var(--c1),var(--c2),var(--c4),var(--c6));background-size:200% 100%;}
+.prog-detail{font-size:11px;color:var(--text3);margin-top:7px;font-family:'DM Mono',monospace;}
 
-/* DEMO CONTROLS */
-.demo-controls { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(17,17,32,0.92); backdrop-filter:blur(12px); border:1px solid var(--border); border-radius:14px; padding:10px 16px; display:flex; align-items:center; gap:10px; z-index:100; box-shadow:0 8px 32px rgba(0,0,0,0.4); }
-[data-theme="light"] .demo-controls { background:rgba(244,244,251,0.96); box-shadow:0 8px 32px rgba(0,0,0,0.12); }
-.demo-btn { padding:7px 16px; border-radius:8px; border:none; background:var(--surface2); color:var(--text); font-family:'Syne',sans-serif; font-size:12px; cursor:pointer; transition:all 0.12s; white-space:nowrap; }
-.demo-btn:hover { background:var(--border); }
-.demo-btn.primary { background:linear-gradient(90deg,var(--c2),var(--c4)); color:#000; font-weight:700; }
-.demo-sep { width:1px; height:20px; background:var(--border); }
+/* Elements */
+.section-label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;font-family:'DM Mono',monospace;}
+.el-list{display:flex;flex-direction:column;gap:4px;}
+.el-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 13px;display:flex;align-items:center;gap:10px;transition:all var(--tr);cursor:pointer;}
+.el-card:hover{border-color:rgba(1,198,241,0.3);}
+.el-card.selected{border-color:var(--hi);background:rgba(1,198,241,0.05);}
+.el-card.active-preview{border-color:var(--hi);background:rgba(1,198,241,0.07);}
+.el-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border);background:var(--bg2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all var(--tr);}
+.el-check.checked{background:linear-gradient(135deg,var(--c2),var(--c4));border-color:transparent;}
+.el-check.checked::after{content:'✓';font-size:10px;color:#000;font-weight:700;}
+.el-badge{font-size:9px;font-weight:600;letter-spacing:0.8px;padding:2px 7px;border-radius:4px;font-family:'DM Mono',monospace;white-space:nowrap;}
+.badge-PARTSTUDIO{background:rgba(1,198,241,0.1);color:var(--c2);}
+.badge-ASSEMBLY{background:rgba(27,211,214,0.1);color:var(--c3);}
+.badge-DRAWING{background:rgba(180,120,255,0.15);color:#c084fc;}
+.el-name{font-size:14px;font-weight:700;flex:1;font-family:'Plus Jakarta Sans',sans-serif;}
+.el-status{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap;}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--text3);flex-shrink:0;}
+.dot.waiting{background:var(--text3);}
+.dot.translating{background:var(--c5);animation:blink 1s infinite;}
+.dot.done{background:var(--c6);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ── 3D PANEL ── */
+.preview-panel{border-left:1px solid var(--border);background:var(--bg2);display:flex;flex-direction:column;overflow:hidden;transition:background var(--tr);}
+#canvas-wrap{flex:1;position:relative;background:var(--bg);transition:background var(--tr);}
+#three-canvas{width:100%;height:100%;display:block;}
+.canvas-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text3);text-align:center;padding:24px;pointer-events:none;}
+.canvas-ph svg{opacity:0.2;}
+.canvas-ph p{font-size:12px;line-height:1.5;max-width:170px;}
+.preview-toolbar{padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:6px;}
+.ctrl-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-family:'DM Mono',monospace;font-size:11px;padding:4px 9px;border-radius:5px;cursor:pointer;transition:all var(--tr);}
+.ctrl-btn:hover,.ctrl-btn.active{border-color:var(--hi);color:var(--hi);}
+.preview-footer{padding:8px 14px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;}
+.drawing-overlay{position:absolute;inset:0;display:none;flex-direction:column;}
+.drawing-overlay.show{display:flex;}
+.drawing-overlay iframe{width:100%;height:100%;border:none;}
+
+/* ── WALKTHROUGH ── */
+.wt-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;}
+.wt-overlay.show{display:flex;}
+.wt-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:min(560px,calc(100vw - 40px));position:relative;overflow:hidden;}
+.wt-progress-bar{height:3px;background:var(--surface2);}
+.wt-progress-fill{height:100%;background:linear-gradient(90deg,var(--c2),var(--c5));transition:width 0.4s ease;}
+.wt-body{padding:36px 36px 28px;}
+.wt-step-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--c2);margin-bottom:10px;}
+.wt-title{font-size:22px;font-weight:800;margin-bottom:10px;line-height:1.2;}
+.wt-desc{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:24px;}
+.wt-highlight{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:24px;display:flex;align-items:flex-start;gap:12px;}
+.wt-hl-icon{width:36px;height:36px;border-radius:10px;background:rgba(1,198,241,0.1);border:1px solid rgba(1,198,241,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-family:'DM Mono',monospace;font-weight:700;color:var(--c2);}
+.wt-hl-text{font-size:13px;color:var(--text2);line-height:1.6;}
+.wt-hl-text strong{color:var(--text);display:block;margin-bottom:3px;}
+.wt-footer{display:flex;align-items:center;justify-content:space-between;}
+.wt-dots{display:flex;gap:6px;}
+.wt-dot{width:7px;height:7px;border-radius:50%;background:var(--surface2);transition:all 0.2s;cursor:pointer;}
+.wt-dot.active{background:var(--c2);width:20px;border-radius:4px;}
+.wt-nav{display:flex;gap:8px;}
+.wt-btn{padding:9px 20px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.wt-btn:hover{border-color:var(--text2);color:var(--text);}
+.wt-btn.primary{background:linear-gradient(90deg,var(--c2),var(--c4));color:#000;border:none;}
+.wt-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;background:var(--surface2);border:none;color:var(--text2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+/* ── DEMO CONTROLS ── */
+.demo-controls{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(11,11,20,0.94);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;z-index:100;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+[data-theme="light"] .demo-controls{background:rgba(244,244,251,0.96);box-shadow:0 8px 32px rgba(0,0,0,0.12);}
+.demo-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:'Syne',sans-serif;font-size:12px;cursor:pointer;transition:all 0.12s;white-space:nowrap;}
+.demo-btn:hover{border-color:var(--hi);color:var(--hi);}
+.demo-btn.primary{background:linear-gradient(90deg,var(--c2),var(--c4));color:#000;font-weight:700;border:none;}
+.demo-sep{width:1px;height:20px;background:var(--border);}
+.demo-try-lbl{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:0.5px;}
 </style>
 </head>
 <body>
 <div class="shell">
-  <nav class="nav">
+
+  <!-- APP NAV — identical to real app -->
+  <nav class="app-nav">
     <a href="/" class="logo">
       <div class="logo-icon"><img id="nav-logo" src="/logo-dark.png" alt=""/></div>
       OnExport
     </a>
-    <span class="demo-badge">Demo Mode</span>
-    <div class="nav-right">
-      <button class="nav-btn" id="theme-btn" onclick="toggleTheme()">Light</button>
-      <div class="user-chip"><div class="avatar">T</div>Tibet Asikoglu</div>
-      <a href="/" class="btn-back">Back</a>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="demo-badge">Demo Mode</span>
+    </div>
+    <div class="nav-right-app">
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">
+        <span id="theme-icon">☀️</span>
+      </button>
+      <div class="user-chip">
+        <div class="avatar">T</div>
+        <span>Tibet Asikoglu</span>
+      </div>
+      <a href="/" class="btn btn-danger btn-sm">Sign out</a>
     </div>
   </nav>
 
+  <!-- WORKSPACE -->
   <div class="workspace">
+
     <!-- SIDEBAR -->
     <div class="sidebar">
       <div class="sidebar-top">
         <div class="sidebar-label">Documents</div>
         <div class="search">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input type="text" placeholder="Search…"/>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Search documents…"/>
         </div>
+      </div>
+      <div class="folder-filter">
+        <button class="folder-chip active">Recent</button>
+        <button class="folder-chip">Older</button>
       </div>
       <div class="doc-list" id="doc-list"></div>
     </div>
 
-    <!-- MAIN -->
+    <!-- MAIN PANEL -->
     <div class="main-panel">
       <div class="doc-header">
-        <div class="doc-title">Wood Working Project</div>
+        <div>
+          <h2>Wood Working Project</h2>
+        </div>
         <div class="export-bar">
           <span class="label-sm">3D</span>
-          <select class="format-select"><option>STEP (.step)</option><option>STL (.stl)</option><option>IGES (.igs)</option><option>OBJ (.obj)</option></select>
+          <select class="format-select">
+            <option>STEP (.step)</option>
+            <option>STL (.stl)</option>
+            <option>IGES (.igs)</option>
+            <option>OBJ (.obj)</option>
+            <option>GLTF (.glb)</option>
+          </select>
           <span class="label-sm">DRW</span>
-          <select class="format-select"><option>PDF (.pdf)</option><option>DWG (.dwg)</option><option>DXF (.dxf)</option></select>
-          <button class="btn-export" onclick="runExport()">Export 4 files</button>
+          <select class="format-select">
+            <option>PDF (.pdf)</option>
+            <option>DWG (.dwg)</option>
+            <option>DXF (.dxf)</option>
+            <option>SVG (.svg)</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="runExport()">Export 4 files</button>
         </div>
       </div>
-      <div class="progress-card" id="prog-card">
-        <div class="progress-row">
-          <span id="prog-label" style="color:var(--text2);font-family:'DM Mono',monospace;font-size:12px;">Translating…</span>
-          <span id="prog-pct" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--c2);">0%</span>
+
+      <div class="prog-card" id="prog-card">
+        <div class="prog-head">
+          <span class="prog-label" id="prog-label">Translating…</span>
+          <span class="prog-pct" id="prog-pct">0%</span>
         </div>
-        <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+        <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+        <div class="prog-detail" id="prog-detail"></div>
       </div>
-      <div class="elements-section">
-        <div class="elements-label">Elements</div>
-        <div class="select-all-row"><span>Select all</span><span class="count-badge">4 selected</span></div>
-        <div id="el-list"></div>
+
+      <div class="section-label">Elements</div>
+
+      <div class="select-bar">
+        <label>
+          <div class="el-check checked" id="select-all-check" onclick="toggleSelectAll()"></div>
+          <span>Select all</span>
+        </label>
+        <span class="sel-count" id="sel-count">4 selected</span>
       </div>
+
+      <div class="el-list" id="el-list"></div>
     </div>
 
-    <!-- PREVIEW -->
+    <!-- 3D PREVIEW PANEL -->
     <div class="preview-panel">
       <div id="canvas-wrap">
         <canvas id="three-canvas"></canvas>
         <div class="canvas-ph" id="canvas-ph">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-          <span>Click an element to preview</span>
+          <p>Click an element to preview</p>
         </div>
         <div class="drawing-overlay" id="drawing-overlay">
           <iframe src="/drawing.pdf" title="Technical Drawing"></iframe>
         </div>
-        <div class="preview-toolbar" id="toolbar" style="display:none;">
-          <button class="tool-btn active" onclick="resetCam()">Reset</button>
-          <button class="tool-btn" id="btn-wire" onclick="toggleWire()">Wire</button>
-          <button class="tool-btn" onclick="fitCam()">Fit</button>
-        </div>
       </div>
-      <div class="preview-footer">
-        <span id="preview-label">No model loaded</span>
-        <span id="tri-count"></span>
+      <div class="preview-toolbar" id="preview-toolbar">
+        <button class="ctrl-btn" onclick="resetCam()">Reset</button>
+        <button class="ctrl-btn" id="btn-wire" onclick="toggleWire()">Wire</button>
+        <button class="ctrl-btn" onclick="fitCam()">Fit</button>
       </div>
+      <div class="preview-footer" id="preview-footer">No model loaded</div>
     </div>
+
   </div>
 </div>
 
 <!-- DEMO CONTROLS -->
 <div class="demo-controls">
-  <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)">Try:</span>
+  <span class="demo-try-lbl">TRY</span>
   <button class="demo-btn" onclick="clickEl('ps1')">Male Part</button>
   <button class="demo-btn" onclick="clickEl('ps2')">Female Part</button>
   <button class="demo-btn" onclick="clickEl('as1')">Assembly</button>
@@ -225,14 +282,14 @@ canvas { display:block; width:100%; height:100%; }
   <button class="demo-btn" onclick="runExport()">Simulate Export</button>
 </div>
 
-<!-- WALKTHROUGH -->
+<!-- WALKTHROUGH OVERLAY -->
 <div class="wt-overlay" id="wt-overlay">
   <div class="wt-card">
     <div class="wt-progress-bar"><div class="wt-progress-fill" id="wt-pfill" style="width:0%"></div></div>
     <button class="wt-close" onclick="closeWt()">✕</button>
     <div class="wt-body">
       <div class="wt-step-label" id="wt-step-lbl">Step 1 of 6</div>
-      <div class="wt-title" id="wt-title">Welcome to OnExport</div>
+      <div class="wt-title" id="wt-title"></div>
       <div class="wt-desc" id="wt-desc"></div>
       <div class="wt-highlight">
         <div class="wt-hl-icon" id="wt-icon"></div>
@@ -250,266 +307,305 @@ canvas { display:block; width:100%; height:100%; }
 </div>
 
 <script>
-// DATA
+// ── DATA ────────────────────────────────────────────────────────
 const ELEMENTS = [
-  {id:'ps1', name:'Male',       type:'PS', status:'waiting'},
-  {id:'ps2', name:'Female',     type:'PS', status:'waiting'},
-  {id:'as1', name:'Assembly 1', type:'AS', status:'waiting'},
-  {id:'dw1', name:'Drawing 1',  type:'DW', status:'waiting'},
+  {id:'ps1', name:'Male',       type:'PARTSTUDIO', status:'waiting'},
+  {id:'ps2', name:'Female',     type:'PARTSTUDIO', status:'waiting'},
+  {id:'as1', name:'Assembly 1', type:'ASSEMBLY',   status:'waiting'},
+  {id:'dw1', name:'Drawing 1',  type:'DRAWING',    status:'waiting'},
 ];
-const TL = {PS:'PART STUDIO', AS:'ASSEMBLY', DW:'DRAWING'};
+const TYPE_LBL = {PARTSTUDIO:'PART STUDIO', ASSEMBLY:'ASSEMBLY', DRAWING:'DRAWING'};
 let activeEl = null;
+let allChecked = true;
 
-function renderSidebar() {
-  document.getElementById('doc-list').innerHTML = `
-    <div class="doc-item active">
-      <div class="doc-name">Wood Working Project</div>
-      <div class="doc-meta">2h ago</div>
-    </div>`;
-}
+// ── SIDEBAR ──────────────────────────────────────────────────────
+document.getElementById('doc-list').innerHTML = `
+  <div class="doc-item active">
+    <div class="doc-name">Wood Working Project</div>
+    <div class="doc-meta">2h ago</div>
+  </div>`;
 
+// ── ELEMENTS ─────────────────────────────────────────────────────
 function renderElements() {
   document.getElementById('el-list').innerHTML = ELEMENTS.map(el => `
-    <div class="el-card ${activeEl===el.id?'active-preview':''}" onclick="clickEl('${el.id}')">
-      <div class="check on"></div>
-      <span class="el-badge badge-${el.type}">${TL[el.type]}</span>
+    <div class="el-card ${activeEl===el.id?'active-preview selected':''}" id="card-${el.id}" onclick="clickEl('${el.id}')">
+      <div class="el-check checked" onclick="event.stopPropagation()"></div>
+      <span class="el-badge badge-${el.type}">${TYPE_LBL[el.type]}</span>
       <span class="el-name">${el.name}</span>
-      <span class="dot-status"><span class="dot ${el.status}"></span><span style="color:var(--text3)">${el.status}</span></span>
+      <span class="el-status">
+        <span class="dot ${el.status}"></span>
+        ${el.status}
+      </span>
     </div>`).join('');
 }
 
-function clickEl(id) {
-  activeEl=id; renderElements();
-  const el=ELEMENTS.find(e=>e.id===id);
-  if(el.type==='DW') showDrawing();
-  else showModel(id==='ps1'?'male':id==='ps2'?'female':'assembly');
+function toggleSelectAll() {
+  allChecked = !allChecked;
+  const saC = document.getElementById('select-all-check');
+  saC.classList.toggle('checked', allChecked);
+  document.getElementById('sel-count').textContent = allChecked ? '4 selected' : '0 selected';
+  renderElements();
 }
 
-// THREE.JS
-let renderer,scene,camera,meshObj,wireOn=false,dirty=true;
+function clickEl(id) {
+  activeEl = id;
+  renderElements();
+  const el = ELEMENTS.find(e => e.id === id);
+  if (el.type === 'DRAWING') showDrawing();
+  else showModel(id === 'ps1' ? 'male' : id === 'ps2' ? 'female' : 'assembly');
+}
+
+// ── THREE.JS ─────────────────────────────────────────────────────
+let renderer, scene, camera, meshObj, wireOn = false, dirty = true;
 
 function initThree() {
-  const cv=document.getElementById('three-canvas');
-  const wrap=document.getElementById('canvas-wrap');
-  renderer=new THREE.WebGLRenderer({canvas:cv,antialias:false});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
-  setBg();
+  const cv = document.getElementById('three-canvas');
+  const wrap = document.getElementById('canvas-wrap');
+  renderer = new THREE.WebGLRenderer({canvas:cv, antialias:false});
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  applyBg();
   resize3d();
-  scene=new THREE.Scene();
-  const grid=new THREE.GridHelper(0.5,20,0x252540,0x1a1a30);
-  grid.position.y=-0.065; scene.add(grid);
-  scene.add(new THREE.AmbientLight(0xffffff,0.65));
-  const d1=new THREE.DirectionalLight(0x01c6f1,1.1); d1.position.set(5,10,5); scene.add(d1);
-  const d2=new THREE.DirectionalLight(0x6aff7e,0.45); d2.position.set(-5,5,-5); scene.add(d2);
-  scene.add(new THREE.DirectionalLight(0xffffff,0.25)).position.set(0,-5,0);
-  camera=new THREE.PerspectiveCamera(45,wrap.clientWidth/wrap.clientHeight,0.001,100);
-  camera.position.set(0.18,0.13,0.22); camera.lookAt(0,0,0);
-  orbit(camera,cv);
-  window.addEventListener('resize',resize3d);
-  (function loop(){requestAnimationFrame(loop); if(dirty){renderer.render(scene,camera);dirty=false;}})();
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(bgHex());
+  const grid = new THREE.GridHelper(0.6, 20, 0x252540, 0x1a1a30);
+  grid.position.y = -0.07; scene.add(grid);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+  const d1 = new THREE.DirectionalLight(0x01c6f1, 1.1); d1.position.set(5,10,5); scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0x6aff7e, 0.45); d2.position.set(-5,5,-5); scene.add(d2);
+  const d3 = new THREE.DirectionalLight(0xffffff, 0.25); d3.position.set(0,-5,0); scene.add(d3);
+  camera = new THREE.PerspectiveCamera(45, wrap.clientWidth/wrap.clientHeight, 0.001, 100);
+  camera.position.set(0.18, 0.13, 0.22);
+  camera.lookAt(0, 0, 0);
+  makeOrbit(camera, cv);
+  window.addEventListener('resize', resize3d);
+  (function loop() { requestAnimationFrame(loop); if (dirty) { renderer.render(scene, camera); dirty = false; } })();
 }
 
-function setBg() {
-  const dark=document.documentElement.getAttribute('data-theme')==='dark';
-  const hex=dark?0x0b0b14:0xe8e8f0;
-  if(renderer) renderer.setClearColor(hex);
-  if(scene) scene.background=new THREE.Color(hex);
-  dirty=true;
+function bgHex() {
+  return document.documentElement.getAttribute('data-theme') === 'dark' ? 0x0b0b14 : 0xf4f4fb;
 }
-
+function applyBg() {
+  if (!renderer) return;
+  renderer.setClearColor(bgHex());
+  if (scene) scene.background = new THREE.Color(bgHex());
+  dirty = true;
+}
 function resize3d() {
-  const w=document.getElementById('canvas-wrap');
-  if(!renderer||!w) return;
-  renderer.setSize(w.clientWidth,w.clientHeight,false);
-  if(camera){camera.aspect=w.clientWidth/w.clientHeight; camera.updateProjectionMatrix();}
-  dirty=true;
+  const w = document.getElementById('canvas-wrap');
+  if (!renderer || !w) return;
+  renderer.setSize(w.clientWidth, w.clientHeight, false);
+  if (camera) { camera.aspect = w.clientWidth/w.clientHeight; camera.updateProjectionMatrix(); }
+  dirty = true;
 }
 
-function orbit(cam,el) {
-  let drag=false,lx=0,ly=0,th=0.8,ph=1.0,r=0.32;
-  const tgt=new THREE.Vector3();
-  const upd=()=>{ cam.position.set(tgt.x+r*Math.sin(ph)*Math.sin(th),tgt.y+r*Math.cos(ph),tgt.z+r*Math.sin(ph)*Math.cos(th)); cam.lookAt(tgt); dirty=true; };
+function makeOrbit(cam, el) {
+  let drag=false, lx=0, ly=0, th=0.8, ph=1.0, r=0.32;
+  const tgt = new THREE.Vector3();
+  const upd = () => {
+    cam.position.set(tgt.x+r*Math.sin(ph)*Math.sin(th), tgt.y+r*Math.cos(ph), tgt.z+r*Math.sin(ph)*Math.cos(th));
+    cam.lookAt(tgt); dirty = true;
+  };
   upd();
-  el.addEventListener('mousedown',e=>{drag=true;lx=e.clientX;ly=e.clientY;});
-  window.addEventListener('mouseup',()=>drag=false);
-  window.addEventListener('mousemove',e=>{ if(!drag)return; th+=(e.clientX-lx)*0.01; ph=Math.max(0.05,Math.min(3.09,ph+(e.clientY-ly)*0.01)); lx=e.clientX;ly=e.clientY; upd(); });
-  el.addEventListener('wheel',e=>{r=Math.max(0.02,Math.min(5,r+e.deltaY*0.0003));upd();},{passive:true});
+  el.addEventListener('mousedown', e => { drag=true; lx=e.clientX; ly=e.clientY; });
+  window.addEventListener('mouseup', () => drag = false);
+  window.addEventListener('mousemove', e => {
+    if (!drag) return;
+    th += (e.clientX-lx)*0.01;
+    ph = Math.max(0.05, Math.min(3.09, ph+(e.clientY-ly)*0.01));
+    lx=e.clientX; ly=e.clientY; upd();
+  });
+  el.addEventListener('wheel', e => { r=Math.max(0.02,Math.min(5,r+e.deltaY*0.0003)); upd(); }, {passive:true});
 }
 
-// BUILD REAL GEOMETRY FROM STEP DIMENSIONS
-// Male: head R=9.5mm, shaft R=3mm, pins R=2mm, total ~74mm tall
+// ── REAL GEOMETRY FROM STEP DIMENSIONS ───────────────────────────
+// Male: head R9.5mm, shaft R3mm, thread rings, pin R2mm
 function mkMale() {
-  const g=new THREE.Group();
-  const mC=new THREE.MeshPhongMaterial({color:0x01c6f1,shininess:90});
-  const mD=new THREE.MeshPhongMaterial({color:0x0d9ebf,shininess:60});
-
-  // Head cylinder R=9.5mm h=15mm
-  g.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.0095,0.0095,0.015,32),mC),{position:new THREE.Vector3(0,0.0075,0)}));
-  // Tapered collar
-  g.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.0055,0.0095,0.005,32),mD),{position:new THREE.Vector3(0,-0.0025,0)}));
-  // Shaft R=3mm L=52mm
-  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.003,0.003,0.052,20),mC);
-  shaft.position.y=-0.031; g.add(shaft);
-  // 7 thread rings on shaft
-  const ringG=new THREE.TorusGeometry(0.003,0.0007,8,18);
-  for(let i=0;i<7;i++){
-    const r=new THREE.Mesh(ringG,mD); r.rotation.x=Math.PI/2;
-    r.position.y=-0.010-i*0.006; g.add(r);
+  const g = new THREE.Group();
+  const mA = new THREE.MeshPhongMaterial({color:0x01c6f1, shininess:90});
+  const mB = new THREE.MeshPhongMaterial({color:0x0d9ebf, shininess:60});
+  g.add(mesh(new THREE.CylinderGeometry(0.0095,0.0095,0.015,32), mA, 0,0.0075,0));
+  g.add(mesh(new THREE.CylinderGeometry(0.0055,0.0095,0.005,32), mB, 0,-0.0025,0));
+  g.add(mesh(new THREE.CylinderGeometry(0.003,0.003,0.052,20), mA, 0,-0.031,0));
+  for (let i=0;i<7;i++) {
+    const r = new THREE.Mesh(new THREE.TorusGeometry(0.003,0.0007,8,18), mB);
+    r.rotation.x = Math.PI/2; r.position.y = -0.010-i*0.006; g.add(r);
   }
-  // Cross pin at bottom R=2mm
-  const pin=new THREE.Mesh(new THREE.CylinderGeometry(0.002,0.002,0.016,12),mD);
-  pin.rotation.z=Math.PI/2; pin.position.y=-0.055; g.add(pin);
-
-  g.position.y=0.028;
+  g.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.002,0.002,0.016,12), mB), {rotation:{x:0,y:0,z:Math.PI/2}, position:{x:0,y:-0.055,z:0}}));
+  g.position.y = 0.028;
   return {mesh:g, tris:3400};
 }
 
-// Female: long body ~214mm x 40mm x 19mm, R=19mm main bore, multiple holes
+// Female: 214mm body, 5 bores R9.5mm
 function mkFemale() {
-  const g=new THREE.Group();
-  const mG=new THREE.MeshPhongMaterial({color:0x46EDA5,shininess:80});
-  const mT=new THREE.MeshPhongMaterial({color:0x27DEC4,shininess:55});
-  const mH=new THREE.MeshPhongMaterial({color:0x080810});
-
-  // Main body 214x40x19mm
-  g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.214,0.040,0.019),mG),{position:new THREE.Vector3(0,0.020,0)}));
-  // Top rail
-  g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.185,0.007,0.010),mT),{position:new THREE.Vector3(0,0.044,0)}));
-  // 5 bore holes R=9.5mm through body
-  const boreG=new THREE.CylinderGeometry(0.0085,0.0085,0.021,24);
-  [-0.08,-0.04,0,0.04,0.08].forEach(x=>{
-    const b=new THREE.Mesh(boreG,mH); b.rotation.x=Math.PI/2; b.position.set(x,0.020,0); g.add(b);
+  const g = new THREE.Group();
+  const mG = new THREE.MeshPhongMaterial({color:0x46EDA5, shininess:80});
+  const mT = new THREE.MeshPhongMaterial({color:0x27DEC4, shininess:55});
+  const mH = new THREE.MeshPhongMaterial({color:0x060610});
+  g.add(mesh(new THREE.BoxGeometry(0.214,0.040,0.019), mG, 0,0.020,0));
+  g.add(mesh(new THREE.BoxGeometry(0.185,0.007,0.010), mT, 0,0.044,0));
+  const bG = new THREE.CylinderGeometry(0.0085,0.0085,0.021,24);
+  [-0.08,-0.04,0,0.04,0.08].forEach(x => {
+    const b = new THREE.Mesh(bG, mH); b.rotation.x=Math.PI/2; b.position.set(x,0.020,0); g.add(b);
   });
-  // End caps
-  const capG=new THREE.CylinderGeometry(0.012,0.012,0.019,18);
-  [-0.107,0.107].forEach(x=>{
-    const c=new THREE.Mesh(capG,mT); c.rotation.z=Math.PI/2; c.position.set(x,0.020,0); g.add(c);
-  });
-  // Base mounting flange
-  g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.040,0.006,0.030),mT),{position:new THREE.Vector3(0,-0.003,0)}));
-
-  g.position.y=-0.020;
+  const cG = new THREE.CylinderGeometry(0.012,0.012,0.019,18);
+  [-0.107,0.107].forEach(x => { const c=new THREE.Mesh(cG,mT); c.rotation.z=Math.PI/2; c.position.set(x,0.020,0); g.add(c); });
+  g.add(mesh(new THREE.BoxGeometry(0.040,0.006,0.030), mT, 0,-0.003,0));
+  g.position.y = -0.020;
   return {mesh:g, tris:5200};
 }
 
-// Assembly: both parts together
+// Assembly: both mated
 function mkAssembly() {
-  const g=new THREE.Group();
-  const {mesh:fem}=mkFemale(); fem.position.set(0,-0.005,0); g.add(fem);
-  const {mesh:mal}=mkMale(); mal.rotation.x=Math.PI/2; mal.position.set(0,0.020,0); g.add(mal);
-  const {mesh:mal2}=mkMale(); mal2.rotation.x=Math.PI/2; mal2.position.set(-0.040,0.020,0); mal2.scale.setScalar(0.97); g.add(mal2);
+  const g = new THREE.Group();
+  const {mesh:fem} = mkFemale(); fem.position.y=-0.005; g.add(fem);
+  const {mesh:mal} = mkMale(); mal.rotation.x=Math.PI/2; mal.position.set(0,0.020,0); g.add(mal);
+  const {mesh:mal2} = mkMale(); mal2.rotation.x=Math.PI/2; mal2.position.set(-0.040,0.020,0); g.add(mal2);
   return {mesh:g, tris:10800};
 }
 
+function mesh(geom, mat, x, y, z) {
+  const m = new THREE.Mesh(geom, mat);
+  m.position.set(x, y, z);
+  return m;
+}
+
+// ── PREVIEW ──────────────────────────────────────────────────────
 function showModel(type) {
   document.getElementById('drawing-overlay').classList.remove('show');
-  document.getElementById('canvas-ph').style.display='none';
-  document.getElementById('toolbar').style.display='flex';
-  if(meshObj&&scene){scene.remove(meshObj);meshObj=null;}
-  const b={male:mkMale,female:mkFemale,assembly:mkAssembly};
-  const {mesh,tris}=b[type]();
-  meshObj=mesh; scene.add(meshObj); dirty=true;
-  const names={male:'Male — PART STUDIO',female:'Female — PART STUDIO',assembly:'Assembly 1 — ASSEMBLY'};
-  document.getElementById('preview-label').textContent=names[type];
-  document.getElementById('tri-count').textContent=tris.toLocaleString()+' tris';
+  document.getElementById('canvas-ph').style.display = 'none';
+  document.getElementById('preview-toolbar').style.display = 'flex';
+  if (meshObj && scene) { scene.remove(meshObj); meshObj = null; }
+  const b = {male:mkMale, female:mkFemale, assembly:mkAssembly};
+  const {mesh:m, tris} = b[type]();
+  meshObj = m; scene.add(meshObj); dirty = true;
+  const names = {male:'Male — PART STUDIO', female:'Female — PART STUDIO', assembly:'Assembly 1 — ASSEMBLY'};
+  document.getElementById('preview-footer').textContent = names[type] + ' · ' + tris.toLocaleString() + ' tris';
 }
 
 function showDrawing() {
   document.getElementById('drawing-overlay').classList.add('show');
-  document.getElementById('canvas-ph').style.display='none';
-  document.getElementById('toolbar').style.display='none';
-  document.getElementById('preview-label').textContent='Drawing 1 — PDF';
-  document.getElementById('tri-count').textContent='';
-}
-
-function clearPreview() {
-  document.getElementById('drawing-overlay').classList.remove('show');
-  document.getElementById('canvas-ph').style.display='flex';
-  document.getElementById('toolbar').style.display='none';
-  document.getElementById('preview-label').textContent='No model loaded';
-  document.getElementById('tri-count').textContent='';
-  if(meshObj&&scene){scene.remove(meshObj);meshObj=null;dirty=true;}
-  activeEl=null; renderElements();
+  document.getElementById('canvas-ph').style.display = 'none';
+  document.getElementById('preview-toolbar').style.display = 'none';
+  document.getElementById('preview-footer').textContent = 'Drawing 1 — PDF';
 }
 
 function toggleWire() {
-  wireOn=!wireOn;
-  document.getElementById('btn-wire').classList.toggle('active',wireOn);
-  if(meshObj) meshObj.traverse(o=>{if(o.isMesh&&o.material)o.material.wireframe=wireOn;});
-  dirty=true;
+  wireOn = !wireOn;
+  document.getElementById('btn-wire').classList.toggle('active', wireOn);
+  if (meshObj) meshObj.traverse(o => { if (o.isMesh && o.material) o.material.wireframe = wireOn; });
+  dirty = true;
 }
-function resetCam(){camera.position.set(0.18,0.13,0.22);camera.lookAt(0,0,0);dirty=true;}
-function fitCam(){camera.position.set(0.14,0.10,0.16);camera.lookAt(0,0,0);dirty=true;}
+function resetCam() { camera.position.set(0.18,0.13,0.22); camera.lookAt(0,0,0); dirty=true; }
+function fitCam()   { camera.position.set(0.14,0.10,0.16); camera.lookAt(0,0,0); dirty=true; }
 
-// EXPORT SIMULATION
+// ── EXPORT SIMULATION ────────────────────────────────────────────
 function runExport() {
-  const card=document.getElementById('prog-card');
-  const fill=document.getElementById('prog-fill');
-  const lbl=document.getElementById('prog-label');
-  const pct=document.getElementById('prog-pct');
+  const card = document.getElementById('prog-card');
+  const fill = document.getElementById('prog-fill');
+  const lbl  = document.getElementById('prog-label');
+  const pct  = document.getElementById('prog-pct');
+  const det  = document.getElementById('prog-detail');
   card.classList.add('show');
-  ELEMENTS.forEach(e=>e.status='active'); renderElements();
-  let p=0;
-  const steps=[{at:15,msg:'Translating Male…'},{at:35,msg:'Translating Female…'},{at:55,msg:'Translating Assembly…'},{at:70,msg:'Translating Drawing…'},{at:82,msg:'Downloading files…'},{at:93,msg:'Creating ZIP…'},{at:100,msg:'Complete'}];
-  const tick=setInterval(()=>{
-    p=Math.min(100,p+1.0); fill.style.width=p+'%'; pct.textContent=Math.round(p)+'%';
-    const s=steps.filter(x=>p>=x.at).pop(); if(s) lbl.textContent=s.msg;
-    if(p>28){const e=ELEMENTS.find(x=>x.id==='ps1');if(e&&e.status!=='done')e.status='done';}
-    if(p>50){const e=ELEMENTS.find(x=>x.id==='ps2');if(e&&e.status!=='done')e.status='done';}
-    if(p>65){const e=ELEMENTS.find(x=>x.id==='as1');if(e&&e.status!=='done')e.status='done';}
-    if(p>78){const e=ELEMENTS.find(x=>x.id==='dw1');if(e&&e.status!=='done')e.status='done';}
+  ELEMENTS.forEach(e => e.status = 'translating'); renderElements();
+  let p = 0;
+  const steps = [
+    {at:15, msg:'Translating Male…',      det:'PARTSTUDIO → STEP'},
+    {at:35, msg:'Translating Female…',    det:'PARTSTUDIO → STEP'},
+    {at:55, msg:'Translating Assembly…',  det:'ASSEMBLY → STEP'},
+    {at:72, msg:'Translating Drawing…',   det:'DRAWING → PDF'},
+    {at:83, msg:'Downloading files…',     det:'Streaming to server'},
+    {at:93, msg:'Creating ZIP…',          det:'Bundling 4 files'},
+    {at:100,msg:'Complete',               det:'4 files ready'},
+  ];
+  const tick = setInterval(() => {
+    p = Math.min(100, p + 0.9);
+    fill.style.width = p + '%';
+    pct.textContent = Math.round(p) + '%';
+    const s = steps.filter(x => p >= x.at).pop();
+    if (s) { lbl.textContent = s.msg; det.textContent = s.det; }
+    if (p > 30)  { const e=ELEMENTS.find(x=>x.id==='ps1'); if(e&&e.status!=='done') e.status='done'; }
+    if (p > 52)  { const e=ELEMENTS.find(x=>x.id==='ps2'); if(e&&e.status!=='done') e.status='done'; }
+    if (p > 68)  { const e=ELEMENTS.find(x=>x.id==='as1'); if(e&&e.status!=='done') e.status='done'; }
+    if (p > 78)  { const e=ELEMENTS.find(x=>x.id==='dw1'); if(e&&e.status!=='done') e.status='done'; }
     renderElements();
-    if(p>=100){clearInterval(tick);setTimeout(()=>{card.classList.remove('show');fill.style.width='0%';ELEMENTS.forEach(e=>e.status='waiting');renderElements();},2500);}
-  },35);
+    if (p >= 100) {
+      clearInterval(tick);
+      setTimeout(() => { card.classList.remove('show'); fill.style.width='0%'; ELEMENTS.forEach(e=>e.status='waiting'); renderElements(); }, 2500);
+    }
+  }, 35);
 }
 
-// THEME
-let theme='dark';
+// ── THEME ────────────────────────────────────────────────────────
+let theme = 'dark';
 function toggleTheme() {
-  theme=theme==='dark'?'light':'dark';
-  document.documentElement.setAttribute('data-theme',theme);
-  document.getElementById('theme-btn').textContent=theme==='dark'?'Light':'Dark';
-  document.getElementById('nav-logo').src=theme==='dark'?'/logo-dark.png':'/logo-light.png';
-  setBg();
+  theme = theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('theme-icon').textContent = theme === 'dark' ? '☀️' : '🌙';
+  document.getElementById('nav-logo').src = theme === 'dark' ? '/logo-dark.png' : '/logo-light.png';
+  applyBg();
 }
 
-// WALKTHROUGH
-const WTS=[
-  {label:'Step 1 of 6',title:'Welcome to OnExport',desc:'OnExport connects to your Onshape account and lets you bulk-export any document to STEP, STL, PDF, DWG, and more — all in one click with a live progress bar and 3D preview.',icon:'→',hlt:'A real Onshape project',hlb:'The Wood Working Project contains real parts exported directly from Onshape: two mating connector parts, an assembly, and a technical drawing.',act:null},
-  {label:'Step 2 of 6',title:'Browse your documents',desc:'After signing in, all your Onshape documents appear in the sidebar. Click any document to load its elements instantly.',icon:'☰',hlt:'Sidebar navigation',hlb:'Documents are listed with their last-modified time. The search bar lets you filter across all your Onshape projects in real time.',act:()=>{const dl=document.getElementById('doc-list');dl.style.outline='2px solid #01c6f1';dl.style.borderRadius='6px';setTimeout(()=>{dl.style.outline='';dl.style.borderRadius='';},1600);}},
-  {label:'Step 3 of 6',title:'3D Part Preview',desc:'Click any Part Studio or Assembly element to instantly load it in the built-in Three.js viewer. Drag to orbit, scroll to zoom. The model is rendered from real STEP geometry.',icon:'3D',hlt:'Male connector — real geometry',hlb:'This small woodworking peg is 9.5mm diameter with a 3mm threaded shaft — built accurately from the dimensions in your uploaded STEP file.',act:()=>clickEl('ps1')},
-  {label:'Step 4 of 6',title:'Assembly Preview',desc:'Assemblies show all mated parts together. See how the male peg inserts into the female receiver board in its assembled position.',icon:'⚙',hlt:'Assembly 1 — both parts mated',hlb:'The female part is 214mm long with 5 bore positions at 40mm spacing. Two male pegs are shown inserted at adjacent positions.',act:()=>clickEl('as1')},
-  {label:'Step 5 of 6',title:'Technical Drawing',desc:'Drawing elements render as full PDF previews — including your dimension lines, tolerances, section views, and title block, exactly as they appear in Onshape.',icon:'↗',hlt:'Drawing 1 — your actual PDF',hlb:'This is the real technical drawing from your Onshape document, served directly by OnExport and displayed inline without leaving the page.',act:()=>clickEl('dw1')},
-  {label:'Step 6 of 6',title:'Export & Download',desc:'Choose your formats, tick the elements you want, then hit Export. All translations run in parallel — one ZIP download delivers everything when complete.',icon:'↓',hlt:'Parallel export engine',hlb:'All format translations start simultaneously. The progress bar tracks each element live via SSE. Click Simulate Export below to see it in action.',act:()=>{closeWt();setTimeout(runExport,400);}},
+// ── WALKTHROUGH ──────────────────────────────────────────────────
+const WTS = [
+  {label:'Step 1 of 6',title:'Welcome to OnExport',
+   desc:'OnExport connects to your Onshape account and lets you bulk-export any document to STEP, STL, PDF, DWG, and more — all in one click with live progress and 3D preview.',
+   icon:'→',hlt:'A real Onshape project',
+   hlb:'The Wood Working Project contains real parts uploaded directly from Onshape — male and female connectors, their assembly, and a technical drawing.',act:null},
+  {label:'Step 2 of 6',title:'Browse your documents',
+   desc:'After signing in, all your Onshape documents appear in the sidebar. Click any document to load its elements instantly.',
+   icon:'☰',hlt:'Sidebar navigation',
+   hlb:'Documents are sorted by last-modified time with Recent/Older filters. The search bar filters across all your Onshape projects in real time.',
+   act:()=>{ const dl=document.getElementById('doc-list'); dl.style.outline='2px solid #01c6f1'; dl.style.borderRadius='4px'; setTimeout(()=>{dl.style.outline='';},1600); }},
+  {label:'Step 3 of 6',title:'3D Part Preview',
+   desc:'Click any Part Studio or Assembly element to instantly load it in the built-in 3D viewer. Drag to orbit, scroll to zoom.',
+   icon:'3D',hlt:'Male connector — real geometry',
+   hlb:'This woodworking peg is 9.5mm head diameter with a 3mm threaded shaft, built accurately from the dimensions in your STEP file.',
+   act:()=>clickEl('ps1')},
+  {label:'Step 4 of 6',title:'Assembly Preview',
+   desc:'Assembly elements show all mated parts in position. See how the male pegs insert into the female receiver board.',
+   icon:'⚙',hlt:'Assembly 1 — both parts mated',
+   hlb:'The female receiver is 214mm long with 5 bore positions at 40mm spacing. Two male pegs are shown inserted at adjacent positions.',
+   act:()=>clickEl('as1')},
+  {label:'Step 5 of 6',title:'Technical Drawing',
+   desc:'Drawing elements render as full PDF previews — dimension lines, tolerances, section views, and title block, exactly as in Onshape.',
+   icon:'↗',hlt:'Drawing 1 — your actual PDF',
+   hlb:'This is the real technical drawing from your Onshape document, served directly by OnExport and shown inline — no separate viewer needed.',
+   act:()=>clickEl('dw1')},
+  {label:'Step 6 of 6',title:'Export & Download',
+   desc:'Choose your formats, select the elements you want, then hit Export. All translations run in parallel — one ZIP download delivers everything.',
+   icon:'↓',hlt:'Parallel export engine',
+   hlb:'All format translations start simultaneously. Live SSE progress tracks each element. When complete, one ZIP download contains all your files.',
+   act:()=>{ closeWt(); setTimeout(runExport,400); }},
 ];
-let wtI=0;
+let wtI = 0;
 
-function startWalkthrough(){wtI=0;renderWt();document.getElementById('wt-overlay').classList.add('show');}
-function closeWt(){document.getElementById('wt-overlay').classList.remove('show');}
-function wtMove(d){
-  if(wtI===WTS.length-1&&d===1){closeWt();setTimeout(runExport,400);return;}
-  wtI=Math.max(0,Math.min(WTS.length-1,wtI+d)); renderWt();
+function startWalkthrough() { wtI=0; renderWt(); document.getElementById('wt-overlay').classList.add('show'); }
+function closeWt() { document.getElementById('wt-overlay').classList.remove('show'); }
+function wtMove(d) {
+  if (wtI === WTS.length-1 && d === 1) { closeWt(); setTimeout(runExport,400); return; }
+  wtI = Math.max(0, Math.min(WTS.length-1, wtI+d));
+  renderWt();
 }
-function renderWt(){
-  const s=WTS[wtI];
-  document.getElementById('wt-pfill').style.width=((wtI+1)/WTS.length*100)+'%';
-  document.getElementById('wt-step-lbl').textContent=s.label;
-  document.getElementById('wt-title').textContent=s.title;
-  document.getElementById('wt-desc').textContent=s.desc;
-  document.getElementById('wt-icon').textContent=s.icon;
-  document.getElementById('wt-hl-t').textContent=s.hlt;
-  document.getElementById('wt-hl-b').textContent=s.hlb;
-  document.getElementById('wt-back').style.visibility=wtI===0?'hidden':'visible';
-  document.getElementById('wt-next').textContent=wtI===WTS.length-1?'Try it':'Next';
-  document.getElementById('wt-dots').innerHTML=WTS.map((_,i)=>`<div class="wt-dot ${i===wtI?'active':''}" onclick="wtI=${i};renderWt()"></div>`).join('');
-  if(s.act) s.act();
+function renderWt() {
+  const s = WTS[wtI];
+  document.getElementById('wt-pfill').style.width = ((wtI+1)/WTS.length*100) + '%';
+  document.getElementById('wt-step-lbl').textContent = s.label;
+  document.getElementById('wt-title').textContent = s.title;
+  document.getElementById('wt-desc').textContent = s.desc;
+  document.getElementById('wt-icon').textContent = s.icon;
+  document.getElementById('wt-hl-t').textContent = s.hlt;
+  document.getElementById('wt-hl-b').textContent = s.hlb;
+  document.getElementById('wt-back').style.visibility = wtI===0 ? 'hidden' : 'visible';
+  document.getElementById('wt-next').textContent = wtI===WTS.length-1 ? 'Try it' : 'Next';
+  document.getElementById('wt-dots').innerHTML = WTS.map((_,i)=>`<div class="wt-dot ${i===wtI?'active':''}" onclick="wtI=${i};renderWt()"></div>`).join('');
+  if (s.act) s.act();
 }
 
-// INIT
-renderSidebar();
+// ── INIT ─────────────────────────────────────────────────────────
 renderElements();
 initThree();
-setTimeout(()=>{clickEl('as1');},600);
+// Auto-load assembly on start
+setTimeout(() => clickEl('as1'), 500);
 </script>
 </body>
 </html>
