@@ -161,6 +161,11 @@ async function startTranslation(token, did, wid, element, format) {
     url = `${ONSHAPE_BASE}/api/v10/partstudios/d/${did}/w/${wid}/e/${eid}/translations`;
   } else if (elementType === 'ASSEMBLY') {
     url = `${ONSHAPE_BASE}/api/v10/assemblies/d/${did}/w/${wid}/e/${eid}/translations`;
+    // Assemblies need flattenAssemblies for STL
+    if (format === 'STL') {
+      body.flattenAssemblies = true;
+      body.yAxisIsUp = false;
+    }
   } else if (elementType === 'DRAWING') {
     url = `${ONSHAPE_BASE}/api/v10/drawings/d/${did}/w/${wid}/e/${eid}/translations`;
     body.formatName = 'PDF'; // override for drawings
@@ -215,8 +220,10 @@ app.get('/api/export/:did', requireAuth, async (req, res) => {
     // Get elements
     const elR = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/w/${wid}/elements`,
       { headers: onshapeHeaders(token) });
+    const selectedIds = req.query.ids ? req.query.ids.split(',') : null;
     const elements = elR.data.filter(e =>
-      ['PARTSTUDIO', 'ASSEMBLY', 'DRAWING'].includes(e.elementType));
+      ['PARTSTUDIO', 'ASSEMBLY', 'DRAWING'].includes(e.elementType) &&
+      (!selectedIds || selectedIds.includes(e.id)));
 
     if (elements.length === 0) {
       return res.status(400).json({ error: 'No exportable elements found in this document.' });
@@ -306,8 +313,10 @@ app.get('/api/export/:did/progress', requireAuth, async (req, res) => {
 
     const elR = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/w/${wid}/elements`,
       { headers: onshapeHeaders(token) });
+    const selectedIds2 = req.query.ids ? req.query.ids.split(',') : null;
     const elements = elR.data.filter(e =>
-      ['PARTSTUDIO', 'ASSEMBLY', 'DRAWING'].includes(e.elementType));
+      ['PARTSTUDIO', 'ASSEMBLY', 'DRAWING'].includes(e.elementType) &&
+      (!selectedIds2 || selectedIds2.includes(e.id)));
 
     send({ type: 'start', total: elements.length });
 
