@@ -138,7 +138,16 @@ app.get('/api/documents/:did/elements', requireAuth, async (req, res) => {
     if (!wid) return res.status(404).json({ error: 'No workspace found' });
     const elR = await axios.get(`${ONSHAPE_BASE}/api/v6/documents/d/${did}/w/${wid}/elements`,
       { headers: onshapeHeaders(req.session.accessToken) });
-    res.json({ elements: elR.data, workspaceId: wid });
+    // Log element types to help debug
+    console.log('Element types:', elR.data.map(e => e.elementType + ':' + e.name).join(', '));
+    // Onshape sometimes returns drawings as type APPLICATION — normalise it
+    const elements = elR.data.map(e => {
+      if (e.elementType === 'APPLICATION' && e.dataType && e.dataType.includes('drawing')) {
+        return { ...e, elementType: 'DRAWING' };
+      }
+      return e;
+    });
+    res.json({ elements, workspaceId: wid });
   } catch (e) {
     console.error('Elements error:', e.response?.data || e.message);
     res.status(500).json({ error: e.response?.data || e.message });
@@ -164,13 +173,21 @@ async function startTranslation(token, did, wid, element, format) {
   // Base body — resolution/unit only valid for PARTSTUDIO
   const body = { formatName: format, storeInDocument: false };
 
+  // Formats that NEVER accept resolution or unit
+  const NO_RES_FORMATS = ['GLTF','OBJ','3MF','COLLADA','JT','SOLIDWORKS','ACIS','PARASOLID'];
+
   if (elementType === 'PARTSTUDIO') {
     url = `${ONSHAPE_BASE}/api/v10/partstudios/d/${did}/w/${wid}/e/${eid}/translations`;
-    // Only add resolution/unit for STL (other formats reject them)
-    if (format === 'STL') { body.resolution = 'fine'; body.unit = 'millimeter'; }
+    // Only STL/STEP/IGES accept resolution+unit; others reject them
+    if (!NO_RES_FORMATS.includes(format)) {
+      body.resolution = 'fine';
+      body.unit = 'millimeter';
+    }
   } else if (elementType === 'ASSEMBLY') {
     url = `${ONSHAPE_BASE}/api/v10/assemblies/d/${did}/w/${wid}/e/${eid}/translations`;
-    // Assemblies don't accept resolution or unit
+    // Assemblies NEVER accept resolution or unit — remove them regardless of format
+    delete body.resolution;
+    delete body.unit;
     if (format === 'STL') { body.flattenAssemblies = true; body.yAxisIsUp = false; }
     // Assemblies only support STEP/IGES/PARASOLID/ACIS/GLTF/COLLADA/STL/3MF
     const assemblyFmts = ['STEP','IGES','PARASOLID','ACIS','GLTF','COLLADA','STL','3MF','OBJ','JT'];
@@ -236,7 +253,7 @@ app.get('/api/preview/:did/:eid', requireAuth, async (req, res) => {
 
     // resolution/unit only valid for PARTSTUDIO
     const body = { formatName: 'STL', storeInDocument: false };
-    if (el.elementType === 'PARTSTUDIO') { body.resolution = 'coarse'; body.unit = 'millimeter'; }
+    if (el.elementType === 'PARTSTUDIO') { body.resolution = 'coarse'; body.unit = 'millimeter'; } // preview always STL so this is safe
     if (el.elementType === 'ASSEMBLY') { body.flattenAssemblies = true; body.yAxisIsUp = false; }
 
     const apiPath = el.elementType === 'PARTSTUDIO' ? 'partstudios' : 'assemblies';
