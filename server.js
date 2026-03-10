@@ -76,7 +76,7 @@ app.get('/auth/callback', async (req, res) => {
     req.session.accessToken  = r.data.access_token;
     req.session.refreshToken = r.data.refresh_token;
     req.session.expiresAt    = Date.now() + r.data.expires_in * 1000;
-    res.redirect('/app');
+    res.redirect('/exporter');
   } catch (e) {
     console.error('OAuth callback error:', e.response?.data || e.message);
     res.redirect('/?error=auth_failed');
@@ -579,6 +579,9 @@ app.get('/api/export/:did/progress', requireAuth, async (req, res) => {
 });
 
 // Serve the SPA for /app too
-app.get('/app', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/exporter', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/app', (req, res) => res.redirect('/exporter')); // keep old URL working
+app.get('/demo', (req, res) => res.sendFile(path.join(__dirname, 'public', 'demo.html')));
+app.get('/demo.html', (req, res) => res.redirect('/demo')); // keep old URL working
 
 app.listen(PORT, () => console.log(`✅ Onshape Exporter running → http://localhost:${PORT}`));
