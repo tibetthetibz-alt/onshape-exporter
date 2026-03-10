@@ -93,7 +93,7 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;transi
 .el-card.active-preview{border-color:var(--hi);background:rgba(1,198,241,0.07);}
 .el-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border);background:var(--bg2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all var(--tr);}
 .el-check.checked{background:linear-gradient(135deg,var(--c2),var(--c4));border-color:transparent;}
-.el-check.checked::after{content:'';width:11px;height:11px;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23000' d='M760 380.4l-61.6-61.6-263.2 263.1-109.6-109.5L264 534l171.2 171.2L760 380.4z'/%3E%3C/svg%3E") no-repeat center/contain;}
+.el-check.checked::after{content:'';display:block;width:10px;height:10px;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") no-repeat center/contain;}
 .el-badge{font-size:9px;font-weight:600;letter-spacing:0.8px;padding:2px 7px;border-radius:4px;font-family:'DM Mono',monospace;white-space:nowrap;}
 .badge-PARTSTUDIO{background:rgba(1,198,241,0.1);color:var(--c2);}
 .badge-ASSEMBLY{background:rgba(27,211,214,0.1);color:var(--c3);}
@@ -121,10 +121,12 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;transi
 .drawing-overlay.show{display:flex;}
 .drawing-overlay iframe{width:100%;height:100%;border:none;}
 
-.dl-card{background:var(--surface);border:1px solid rgba(70,237,165,0.3);border-radius:10px;padding:14px;margin-bottom:14px;display:none;align-items:center;justify-content:space-between;gap:12px;}
+/* ── DOWNLOAD CARD ── */
+.dl-card{display:none;align-items:center;justify-content:space-between;gap:12px;background:rgba(70,237,165,0.06);border:1px solid rgba(70,237,165,0.3);border-radius:10px;padding:14px 16px;margin-bottom:14px;animation:slideIn 0.3s ease;}
 .dl-card.show{display:flex;}
-.dl-card h3{font-size:14px;font-weight:600;color:var(--c5);}
-.dl-card p{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:3px;}
+@keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.dl-card-text h3{font-size:13px;font-weight:700;color:var(--c5);}
+.dl-card-text p{font-size:11px;color:var(--text3);font-family:"DM Mono",monospace;margin-top:2px;}
 
 /* ── WALKTHROUGH ── */
 .wt-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;}
@@ -132,14 +134,14 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;transi
 .wt-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:min(560px,calc(100vw - 40px));position:relative;overflow:hidden;}
 .wt-progress-bar{height:3px;background:var(--surface2);}
 .wt-progress-fill{height:100%;background:linear-gradient(90deg,var(--c2),var(--c5));transition:width 0.4s ease;}
-.wt-body{padding:36px 36px 28px;}
+.wt-body{padding:30px 32px 24px;}
 .wt-step-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--c2);margin-bottom:10px;}
-.wt-title{font-size:22px;font-weight:800;margin-bottom:10px;line-height:1.2;}
-.wt-desc{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:24px;}
-.wt-highlight{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:24px;display:flex;align-items:flex-start;gap:12px;}
-.wt-hl-icon{width:36px;height:36px;border-radius:10px;background:rgba(1,198,241,0.1);border:1px solid rgba(1,198,241,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-family:'DM Mono',monospace;font-weight:700;color:var(--c2);}
-.wt-hl-text{font-size:13px;color:var(--text2);line-height:1.6;}
-.wt-hl-text strong{color:var(--text);display:block;margin-bottom:3px;}
+
+
+
+
+
+
 .wt-footer{display:flex;align-items:center;justify-content:space-between;}
 .wt-dots{display:flex;gap:6px;}
 .wt-dot{width:7px;height:7px;border-radius:50%;background:var(--surface2);transition:all 0.2s;cursor:pointer;}
@@ -149,6 +151,12 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;transi
 .wt-btn:hover{border-color:var(--text2);color:var(--text);}
 .wt-btn.primary{background:linear-gradient(90deg,var(--c2),var(--c4));color:#000;border:none;}
 .wt-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;background:var(--surface2);border:none;color:var(--text2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.wt-title{font-size:21px;font-weight:800;margin-bottom:10px;line-height:1.2;}
+.wt-desc{font-size:14px;color:var(--text2);line-height:1.65;margin-bottom:16px;}
+.wt-tip-box{display:flex;align-items:flex-start;gap:8px;background:rgba(1,198,241,0.07);border:1px solid rgba(1,198,241,0.2);border-radius:9px;padding:10px 13px;margin-bottom:24px;font-size:12px;color:var(--c2);line-height:1.55;}
+.wt-tip-box svg{flex-shrink:0;margin-top:1px;opacity:0.8;}
+@keyframes wtPulse{0%,100%{box-shadow:0 0 0 0 rgba(1,198,241,0.5)}50%{box-shadow:0 0 0 6px rgba(1,198,241,0)}}
+.wt-pulse{animation:wtPulse 1.2s ease 3;outline:2px solid rgba(1,198,241,0.6);outline-offset:3px;border-radius:6px;}
 
 /* ── DEMO CONTROLS ── */
 .demo-controls{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(11,11,20,0.94);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;z-index:100;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
@@ -225,16 +233,16 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;transi
             <option>DXF (.dxf)</option>
             <option>SVG (.svg)</option>
           </select>
-          <button class="btn btn-primary btn-sm" onclick="runExport()">Export 4 files</button>
+          <span id="export-btn-wrap"><button class="btn btn-primary btn-sm" onclick="runExport()">Export 4 files</button></span>
         </div>
       </div>
 
       <div class="dl-card" id="dl-card">
-        <div>
+        <div class="dl-card-text">
           <h3>Export complete</h3>
-          <p>4 files — Male.step, Female.step, Assembly 1.step, Technical Drawing.pdf</p>
+          <p>Male.step · Female.step · Assembly 1.step · Technical Drawing.pdf</p>
         </div>
-        <a href="/demo_export.zip" download="Wood_Working_Project_export.zip" class="btn btn-primary btn-sm" onclick="this.style.opacity=0.6">Download ZIP</a>
+        <a href="/demo_export.zip" download="Wood_Working_Project.zip" class="btn btn-primary btn-sm">Download ZIP</a>
       </div>
 
       <div class="prog-card" id="prog-card">
@@ -248,9 +256,9 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;transi
 
       <div class="section-label">Elements</div>
 
-      <div class="select-bar">
+      <div class="select-bar" id="select-bar">
         <label>
-          <div class="el-check checked" id="select-all-check" style="pointer-events:none;cursor:default;"></div>
+          <div class="el-check checked" id="select-all-check" style="pointer-events:none"></div>
           <span>Select all</span>
         </label>
         <span class="sel-count" id="sel-count">4 selected</span>
@@ -290,7 +298,7 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;transi
   <button class="demo-btn" onclick="clickEl('as1')">Assembly</button>
   <button class="demo-btn" onclick="clickEl('dw1')">Drawing</button>
   <div class="demo-sep"></div>
-  <button class="demo-btn primary" onclick="startWalkthrough()">How to use →</button>
+  <button class="demo-btn primary" onclick="startWalkthrough()">Walkthrough</button>
   <div class="demo-sep"></div>
   <button class="demo-btn" onclick="runExport()">Simulate Export</button>
 </div>
@@ -301,18 +309,20 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;transi
     <div class="wt-progress-bar"><div class="wt-progress-fill" id="wt-pfill" style="width:0%"></div></div>
     <button class="wt-close" onclick="closeWt()">✕</button>
     <div class="wt-body">
-      <div class="wt-step-label" id="wt-step-lbl">Step 1 of 6</div>
-      <div class="wt-title" id="wt-title"></div>
-      <div class="wt-desc" id="wt-desc"></div>
-      <div class="wt-highlight">
-        <div class="wt-hl-icon" id="wt-icon"></div>
-        <div class="wt-hl-text"><strong id="wt-hl-t"></strong><span id="wt-hl-b"></span></div>
+      <div class="wt-step-label" id="wt-step-lbl">1 / 6</div>
+      <div id="wt-body-inner">
+        <div class="wt-title" id="wt-title"></div>
+        <div class="wt-desc" id="wt-desc"></div>
+        <div class="wt-tip-box">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="wt-tip"></span>
+        </div>
       </div>
       <div class="wt-footer">
         <div class="wt-dots" id="wt-dots"></div>
         <div class="wt-nav">
           <button class="wt-btn" id="wt-back" onclick="wtMove(-1)">Back</button>
-          <button class="wt-btn primary" id="wt-next" onclick="wtMove(1)">Next</button>
+          <button class="wt-btn primary" id="wt-next" onclick="wtMove(1)">Next →</button>
         </div>
       </div>
     </div>
@@ -342,7 +352,7 @@ document.getElementById('doc-list').innerHTML = `
 function renderElements() {
   document.getElementById('el-list').innerHTML = ELEMENTS.map(el => `
     <div class="el-card ${activeEl===el.id?'active-preview selected':''}" id="card-${el.id}" onclick="clickEl('${el.id}')">
-      <div class="el-check checked" style="pointer-events:none;cursor:default;"></div>
+      <div class="el-check checked" style="pointer-events:none"></div>
       <span class="el-badge badge-${el.type}">${TYPE_LBL[el.type]}</span>
       <span class="el-name">${el.name}</span>
       <span class="el-status">
@@ -352,8 +362,7 @@ function renderElements() {
     </div>`).join('');
 }
 
-function toggleSelectAll() { return; // disabled in demo
-  
+function toggleSelectAll() {
   allChecked = !allChecked;
   const saC = document.getElementById('select-all-check');
   saC.classList.toggle('checked', allChecked);
@@ -544,15 +553,14 @@ function runExport() {
     renderElements();
     if (p >= 100) {
       clearInterval(tick);
-      // Show download card, then reset after delay
-      showDownloadCard();
+      document.getElementById('dl-card').classList.add('show');
       setTimeout(() => {
         card.classList.remove('show');
-        fill.style.width='0%';
-        ELEMENTS.forEach(e=>e.status='waiting');
+        fill.style.width = '0%';
+        ELEMENTS.forEach(e => e.status = 'waiting');
         renderElements();
-        hideDownloadCard();
-      }, 8000);
+        setTimeout(() => document.getElementById('dl-card').classList.remove('show'), 10000);
+      }, 800);
     }
   }, 35);
 }
@@ -568,86 +576,94 @@ function toggleTheme() {
 }
 
 // ── WALKTHROUGH ──────────────────────────────────────────────────
+// Each step: title, short desc, which UI element to pulse-highlight, action
 const WTS = [
-  { label:'Step 1 of 8', title:'Sign in with Onshape',
-    desc:'Start by clicking "Connect with Onshape" on the home page. OnExport uses Onshape's official OAuth2 login — your password never touches our server. You'll approve access on Onshape's site and land straight in the app.',
-    icon:'🔑', hlt:'Safe & secure login',
-    hlb:'OnExport only requests read access and export permissions. You can revoke access from your Onshape account settings any time.',
-    spotlight:null, act:null },
-  { label:'Step 2 of 8', title:'Find your document',
-    desc:'All your Onshape documents appear in the left sidebar, sorted by most recently modified. Use the search bar to filter by name, or use the Recent / Older tabs to browse. Click any document to open it.',
-    icon:'📁', hlt:'Wood Working Project',
-    hlb:'This demo has one document loaded. In the real app your full Onshape library appears here — scroll or search to find what you need.',
-    spotlight:'doc-list', act:null },
-  { label:'Step 3 of 8', title:'Your elements load automatically',
-    desc:'Once you click a document, OnExport fetches all its elements — Part Studios, Assemblies, and Drawings each appear as a separate row with a colour-coded badge. All are ticked ready to export by default.',
-    icon:'☰', hlt:'4 elements loaded',
-    hlb:'Male (Part Studio), Female (Part Studio), Assembly 1 (Assembly), Drawing 1 (Drawing). Each has a status dot on the right that updates live during export.',
-    spotlight:'el-list', act:null },
-  { label:'Step 4 of 8', title:'Preview any 3D part',
-    desc:'Click any Part Studio or Assembly row to load it instantly in the 3D viewer on the right. Drag to orbit, scroll to zoom. The Reset, Wire, and Fit buttons let you control the view.',
-    icon:'3D', hlt:'Male connector — try it',
-    hlb:'A 9.5mm head peg with a 3mm threaded shaft, rendered from the real STEP file geometry. Drag it to spin around.',
-    spotlight:null, act:()=>clickEl('ps1') },
-  { label:'Step 5 of 8', title:'Preview the assembly',
-    desc:'Assembly elements show all mated parts in their assembled positions — useful to visually verify everything looks right before you export.',
-    icon:'⚙', hlt:'Assembly 1',
-    hlb:'Both connectors are shown mated. The female receiver is 214mm long with 5 bore holes — two male pegs inserted at adjacent positions.',
-    spotlight:null, act:()=>clickEl('as1') },
-  { label:'Step 6 of 8', title:'Preview drawings inline',
-    desc:'Click a Drawing element and the technical drawing PDF opens directly in the preview panel — no separate viewer or download needed. Check dimensions and tolerances before exporting.',
-    icon:'↗', hlt:'Drawing 1 — real PDF',
-    hlb:'This is the actual technical drawing from the Onshape document, streamed live by OnExport. Dimension lines, tolerances and the title block all render exactly as in Onshape.',
-    spotlight:null, act:()=>clickEl('dw1') },
-  { label:'Step 7 of 8', title:'Pick your export formats',
-    desc:'Use the dropdowns at the top to choose formats. The "3D" dropdown sets the format for Part Studios and Assemblies. The "DRW" dropdown sets the format for Drawings. Untick any elements you don't need.',
-    icon:'⬇', hlt:'Mix and match',
-    hlb:'Export 3D parts as STEP while exporting drawings as DWG — all in one run. Supported 3D: STEP, STL, IGES, OBJ, GLTF. Supported drawings: PDF, DWG, DXF, SVG, PNG.',
-    spotlight:'export-bar', act:()=>clickEl('as1') },
-  { label:'Step 8 of 8', title:'Export and download your ZIP',
-    desc:'Hit Export. All translations run in parallel on Onshape's servers — a live progress bar tracks each file. When done, a green Download ZIP button appears. Click it to save all your files in one go.',
-    icon:'↓', hlt:'Try it now — for real',
-    hlb:'Click "Try it" below to run the export simulation and download the actual ZIP — Male.step, Female.step, Assembly 1.step and Technical Drawing.pdf.',
-    spotlight:null, act:()=>clickEl('as1') },
+  { title: `Sign in with Onshape`,
+    desc:  `Click "Connect with Onshape" on the home page. You'll be redirected to Onshape to approve access — your password never touches OnExport.`,
+    tip:   `Takes about 10 seconds. You only do this once.`,
+    pulse: null, act: null },
+  { title: `Pick a document`,
+    desc:  `All your Onshape documents appear in the sidebar. Search by name or scroll to find what you need, then click it.`,
+    tip:   `Documents are sorted by most recently modified.`,
+    pulse: 'doc-list', act: null },
+  { title: `Choose your formats`,
+    desc:  `Use the 3D dropdown for Part Studios and Assemblies. Use the DRW dropdown for Drawings. Mix and match freely.`,
+    tip:   `3D: STEP, STL, IGES, OBJ, GLTF. Drawings: PDF, DWG, DXF, SVG.`,
+    pulse: 'export-bar', act: () => clickEl('as1') },
+  { title: `Preview before exporting`,
+    desc:  `Click any element row to preview it. Drag to orbit 3D models, scroll to zoom. Drawings open as a PDF inline.`,
+    tip:   `The preview helps you confirm you've got the right version.`,
+    pulse: 'el-list', act: () => clickEl('ps1') },
+  { title: `Untick what you don't need`,
+    desc:  `Every element is ticked by default. Untick any you want to skip — or use Select all to toggle everything at once.`,
+    tip:   `Only ticked elements are included in the export.`,
+    pulse: 'select-bar', act: null },
+  { title: `Export and download`,
+    desc:  `Hit Export. A live progress bar tracks each file in parallel. When done, a ZIP download button appears with everything inside.`,
+    tip:   `Click "Try it" to run a real export simulation right now.`,
+    pulse: 'export-btn-wrap', act: () => { closeWt(); setTimeout(runExport, 300); } },
 ];
 
 let wtI = 0;
-let _spotEl = null;
+let _pulseEl = null;
 
-function startWalkthrough() { wtI=0; renderWt(); document.getElementById('wt-overlay').classList.add('show'); }
-function closeWt() { document.getElementById('wt-overlay').classList.remove('show'); _clearSpot(); }
-function wtMove(d) {
-  if (wtI===WTS.length-1 && d===1) { closeWt(); setTimeout(runExport,300); return; }
-  wtI = Math.max(0, Math.min(WTS.length-1, wtI+d));
+function startWalkthrough() {
+  wtI = 0;
+  document.getElementById('wt-overlay').classList.add('show');
   renderWt();
 }
-function _setSpot(id) {
-  _clearSpot();
-  if (!id) return;
-  const el=document.getElementById(id); if (!el) return;
-  el.style.outline='2px solid #01c6f1'; el.style.outlineOffset='3px'; el.style.borderRadius='6px';
-  _spotEl=el;
+function closeWt() {
+  document.getElementById('wt-overlay').classList.remove('show');
+  _clearPulse();
 }
-function _clearSpot() {
-  if (_spotEl) { _spotEl.style.outline=''; _spotEl.style.outlineOffset=''; _spotEl.style.borderRadius=''; _spotEl=null; }
+function wtMove(d) {
+  if (wtI === WTS.length - 1 && d === 1) { closeWt(); setTimeout(runExport, 300); return; }
+  wtI = Math.max(0, Math.min(WTS.length - 1, wtI + d));
+  renderWt();
+}
+function _pulse(id) {
+  _clearPulse();
+  if (!id) return;
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('wt-pulse');
+  _pulseEl = el;
+}
+function _clearPulse() {
+  if (_pulseEl) { _pulseEl.classList.remove('wt-pulse'); _pulseEl = null; }
 }
 function renderWt() {
-  const s=WTS[wtI];
-  document.getElementById('wt-pfill').style.width=((wtI+1)/WTS.length*100)+'%';
-  document.getElementById('wt-step-lbl').textContent=s.label;
-  document.getElementById('wt-title').textContent=s.title;
-  document.getElementById('wt-desc').textContent=s.desc;
-  document.getElementById('wt-icon').textContent=s.icon;
-  document.getElementById('wt-hl-t').textContent=s.hlt;
-  document.getElementById('wt-hl-b').textContent=s.hlb;
-  document.getElementById('wt-back').style.visibility=wtI===0?'hidden':'visible';
-  document.getElementById('wt-next').textContent=wtI===WTS.length-1?'Try it':'Next →';
-  document.getElementById('wt-dots').innerHTML=WTS.map((_,i)=>`<div class="wt-dot ${i===wtI?'active':''}" onclick="wtI=${i};renderWt()"></div>`).join('');
+  const s = WTS[wtI];
+  const total = WTS.length;
+  // progress bar
+  document.getElementById('wt-pfill').style.width = ((wtI + 1) / total * 100) + '%';
+  // step counter
+  document.getElementById('wt-step-lbl').textContent = `${wtI + 1} / ${total}`;
+  // animate content swap
+  const body = document.getElementById('wt-body-inner');
+  body.style.opacity = '0';
+  body.style.transform = 'translateY(8px)';
+  setTimeout(() => {
+    document.getElementById('wt-title').textContent = s.title;
+    document.getElementById('wt-desc').textContent = s.desc;
+    document.getElementById('wt-tip').textContent = s.tip;
+    body.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
+    body.style.opacity = '1';
+    body.style.transform = 'none';
+  }, 80);
+  // dots
+  document.getElementById('wt-dots').innerHTML = WTS.map((_, i) =>
+    `<div class="wt-dot ${i === wtI ? 'active' : ''}" onclick="wtI=${i};renderWt()"></div>`
+  ).join('');
+  // buttons
+  document.getElementById('wt-back').style.visibility = wtI === 0 ? 'hidden' : 'visible';
+  document.getElementById('wt-next').textContent = wtI === total - 1 ? 'Try it →' : 'Next →';
+  // pulse UI element
+  setTimeout(() => _pulse(s.pulse), 120);
+  // action
   if (s.act) s.act();
-  setTimeout(()=>_setSpot(s.spotlight), 60);
 }
 
-// ── INIT ─────────────────────────────────────────────────────────
 // ── INIT ─────────────────────────────────────────────────────────
 renderElements();
 initThree();
